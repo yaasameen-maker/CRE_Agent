@@ -1,0 +1,57 @@
+# .pre-commit-config.yaml
+repos:
+  # Ruff: lint (with autofix) + format
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  # detect-secrets: block accidental credential commits
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+        exclude: .secrets.baseline
+
+  # Bandit: Python security static analysis
+  - repo: local
+    hooks:
+      - id: bandit
+        name: bandit — security scan
+        entry: bandit -r src/ -c pyproject.toml
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+  # Mypy: type checking
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy — type check
+        entry: mypy src/
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+  # Pytest: unit tests only (fast, no API keys needed)
+  - repo: local
+    hooks:
+      - id: pytest-unit
+        name: pytest — unit tests
+        entry: pytest tests/unit/ -v --tb=short -q
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+  # Pytest: integration tests on push only (may need env vars)
+  - repo: local
+    hooks:
+      - id: pytest-integration
+        name: pytest — integration tests
+        entry: pytest tests/integration/ -v --tb=short -q
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

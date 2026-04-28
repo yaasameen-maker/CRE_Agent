@@ -1,0 +1,33 @@
+name: Branch Name
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-branch-name:
+    name: Validate Branch Name
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check branch naming convention
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
+        run: |
+          echo "Branch: $BRANCH_NAME"
+          if ! echo "$BRANCH_NAME" | grep -qE '^(feat|fix|doc|hotfix)/.+'; then
+            echo ""
+            echo "ERROR: Branch name '$BRANCH_NAME' does not follow naming convention."
+            echo ""
+            echo "Required pattern:  <type>/<description>"
+            echo "Allowed types:     feat | fix | doc | hotfix"
+            echo ""
+            echo "Examples:"
+            echo "  feat/llm-abstraction-layer"
+            echo "  fix/rentcast-null-handling"
+            echo "  doc/api-schema-contract"
+            echo "  hotfix/scheduler-crash"
+            exit 1
+          fi
+          echo "Branch name is valid."

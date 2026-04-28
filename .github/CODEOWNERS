@@ -1,0 +1,9 @@
+# All files require review from at least one owner
+* @beatrice @yaasameen
+
+# Backend — Beatrice reviews all src/ changes
+src/ @beatrice
+
+# CI/CD and security config — both must review
+.github/ @beatrice @yaasameen
+pyproject.toml @beatrice @yaasameen
