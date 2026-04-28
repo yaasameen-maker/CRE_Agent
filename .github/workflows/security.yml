@@ -1,0 +1,48 @@
+name: Security
+
+on:
+  pull_request:
+    branches:
+      - main
+  schedule:
+    # Runs every Monday at 9am UTC
+    - cron: "0 9 * * 1"
+
+jobs:
+  sast:
+    name: Static Analysis (Bandit)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Bandit
+        run: pip install bandit[toml]
+
+      - name: Run Bandit
+        run: bandit -r src/ -c pyproject.toml
+
+  dependency-audit:
+    name: Dependency Vulnerabilities (pip-audit)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Audit dependencies
+        run: pip-audit -r requirements.txt
