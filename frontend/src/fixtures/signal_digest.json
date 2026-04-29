@@ -1,0 +1,54 @@
+{
+  "generated_at": "2026-04-28T08:00:00Z",
+  "run_id": "a1b2c3d4-0001-0000-0000-000000000001",
+  "zips": [
+    {
+      "zip": "33101",
+      "city": "Miami",
+      "state": "FL",
+      "distress_score": 87,
+      "rank": 1,
+      "action": "Model",
+      "signals": {
+        "vacancy":      { "value": 9.1,  "change_30d": 6.4,  "flag": true  },
+        "rent":         { "value": -4.8, "change_30d": -4.8, "flag": true  },
+        "price_growth": { "value": 0.3,  "annualized": 0.3,  "flag": true  },
+        "employment":   { "value": -2.7, "change_30d": -2.7, "flag": true  },
+        "foreclosure":  { "count": 5,                        "flag": true  }
+      },
+      "brief_id": "b1b2c3d4-0001-0000-0000-000000000001"
+    },
+    {
+      "zip": "60601",
+      "city": "Chicago",
+      "state": "IL",
+      "distress_score": 62,
+      "rank": 2,
+      "action": "Monitor",
+      "signals": {
+        "vacancy":      { "value": 6.2,  "change_30d": 5.1,  "flag": true  },
+        "rent":         { "value": -1.1, "change_30d": -1.1, "flag": false },
+        "price_growth": { "value": 1.8,  "annualized": 1.8,  "flag": false },
+        "employment":   { "value": -1.5, "change_30d": -1.5, "flag": false },
+        "foreclosure":  { "count": 2,                        "flag": true  }
+      },
+      "brief_id": "b1b2c3d4-0002-0000-0000-000000000002"
+    },
+    {
+      "zip": "10001",
+      "city": "New York",
+      "state": "NY",
+      "distress_score": 28,
+      "rank": 3,
+      "action": "Ignore",
+      "signals": {
+        "vacancy":      { "value": 3.4,  "change_30d": 1.2,  "flag": false },
+        "rent":         { "value": 0.5,  "change_30d": 0.5,  "flag": false },
+        "price_growth": { "value": 3.1,  "annualized": 3.1,  "flag": false },
+        "employment":   { "value": -0.4, "change_30d": -0.4, "flag": false },
+        "foreclosure":  { "count": 0,                        "flag": false }
+      },
+      "brief_id": "b1b2c3d4-0003-0000-0000-000000000003"
+    }
+  ]
+}

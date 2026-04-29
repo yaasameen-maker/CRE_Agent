@@ -1,0 +1,24 @@
+{
+  "brief_id": "b1b2c3d4-0001-0000-0000-000000000001",
+  "zip": "33101",
+  "city": "Miami",
+  "state": "FL",
+  "generated_at": "2026-04-28T08:00:00Z",
+  "distress_score": 87,
+  "action": "Model",
+  "summary": "ZIP 33101 (Miami, FL) is exhibiting severe multi-signal distress. Vacancy has risen 6.4 percentage points over the trailing 30 days, rent has declined 4.8%, and 5 active foreclosure filings were recorded. Employment is contracting at -2.7% month-over-month. Combined with near-flat annualized price growth of 0.3%, this market presents a compelling distressed acquisition opportunity. Recommend immediate financial modeling.",
+  "signals": {
+    "vacancy":      { "value": 9.1,  "change_30d": 6.4,  "flag": true,  "source": "RentCast", "as_of": "2026-04-28" },
+    "rent":         { "value": -4.8, "change_30d": -4.8, "flag": true,  "source": "RentCast", "as_of": "2026-04-28" },
+    "price_growth": { "value": 0.3,  "annualized": 0.3,  "flag": true,  "source": "FHFA",     "as_of": "2026-04-28" },
+    "employment":   { "value": -2.7, "change_30d": -2.7, "flag": true,  "source": "BLS",      "as_of": "2026-04-28" },
+    "foreclosure":  { "count": 5,                        "flag": true,  "source": "ATTOM",    "as_of": "2026-04-28" }
+  },
+  "source_citations": [
+    { "source": "RentCast", "metric": "vacancy_rate",   "value": 9.1,  "date": "2026-04-28" },
+    { "source": "RentCast", "metric": "rent_change_30d","value": -4.8, "date": "2026-04-28" },
+    { "source": "FHFA",     "metric": "price_growth",   "value": 0.3,  "date": "2026-04-28" },
+    { "source": "BLS",      "metric": "employment_trend","value": -2.7, "date": "2026-04-28" },
+    { "source": "ATTOM",    "metric": "foreclosure_count","value": 5,  "date": "2026-04-28" }
+  ]
+}

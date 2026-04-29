@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "opportunity_brief",
+  "title": "Opportunity Brief",
+  "description": "Per-ZIP detailed analysis produced by the brief generator. Frontend reads this for the Brief Detail view. Every claim traces to a source_citation row.",
+  "type": "object",
+  "required": ["brief_id", "zip", "city", "state", "generated_at", "distress_score", "action", "summary", "signals", "source_citations"],
+  "additionalProperties": false,
+  "properties": {
+    "brief_id":       { "type": "string", "format": "uuid" },
+    "zip":            { "type": "string", "pattern": "^[0-9]{5}$" },
+    "city":           { "type": "string" },
+    "state":          { "type": "string", "minLength": 2, "maxLength": 2 },
+    "generated_at":   { "type": "string", "format": "date-time" },
+    "distress_score": { "type": "number", "minimum": 0, "maximum": 100 },
+    "action":         { "type": "string", "enum": ["Model", "Monitor", "Ignore"] },
+    "summary":        { "type": "string", "description": "LLM-generated narrative paragraph summarising distress signals" },
+    "signals": {
+      "type": "object",
+      "required": ["vacancy", "rent", "price_growth", "employment", "foreclosure"],
+      "additionalProperties": false,
+      "properties": {
+        "vacancy": {
+          "type": "object",
+          "required": ["value", "change_30d", "flag", "source", "as_of"],
+          "properties": {
+            "value":      { "type": "number" },
+            "change_30d": { "type": "number" },
+            "flag":       { "type": "boolean" },
+            "source":     { "type": "string" },
+            "as_of":      { "type": "string", "format": "date" }
+          }
+        },
+        "rent": {
+          "type": "object",
+          "required": ["value", "change_30d", "flag", "source", "as_of"],
+          "properties": {
+            "value":      { "type": "number" },
+            "change_30d": { "type": "number" },
+            "flag":       { "type": "boolean" },
+            "source":     { "type": "string" },
+            "as_of":      { "type": "string", "format": "date" }
+          }
+        },
+        "price_growth": {
+          "type": "object",
+          "required": ["value", "annualized", "flag", "source", "as_of"],
+          "properties": {
+            "value":      { "type": "number" },
+            "annualized": { "type": "number" },
+            "flag":       { "type": "boolean" },
+            "source":     { "type": "string" },
+            "as_of":      { "type": "string", "format": "date" }
+          }
+        },
+        "employment": {
+          "type": "object",
+          "required": ["value", "change_30d", "flag", "source", "as_of"],
+          "properties": {
+            "value":      { "type": "number" },
+            "change_30d": { "type": "number" },
+            "flag":       { "type": "boolean" },
+            "source":     { "type": "string" },
+            "as_of":      { "type": "string", "format": "date" }
+          }
+        },
+        "foreclosure": {
+          "type": "object",
+          "required": ["count", "flag", "source", "as_of"],
+          "properties": {
+            "count":  { "type": "integer", "minimum": 0 },
+            "flag":   { "type": "boolean" },
+            "source": { "type": "string" },
+            "as_of":  { "type": "string", "format": "date" }
+          }
+        }
+      }
+    },
+    "source_citations": {
+      "type": "array",
+      "description": "Every data point in summary must trace to one of these rows",
+      "items": {
+        "type": "object",
+        "required": ["source", "metric", "value", "date"],
+        "additionalProperties": false,
+        "properties": {
+          "source": { "type": "string", "description": "Data provider name (RentCast, FHFA, BLS, ATTOM, FRED, Census, HUD)" },
+          "metric": { "type": "string" },
+          "value":  { "type": "number" },
+          "date":   { "type": "string", "format": "date" }
+        }
+      }
+    }
+  }
+}
