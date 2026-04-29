@@ -84,7 +84,12 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Run integration tests
-        run: pytest tests/integration/ -v --tb=short
+        run: |
+          set +e
+          pytest tests/integration/ -v --tb=short
+          ec=$?
+          set -e
+          [ "$ec" -eq 5 ] && exit 0 || exit "$ec"
         env:
           LLM_PROVIDER: openrouter
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}

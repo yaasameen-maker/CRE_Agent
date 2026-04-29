@@ -1,5 +1,6 @@
 # Placeholder — populate as you add dependencies
 # anthropic>=0.28.0  (uncomment Saturday when Claude API key arrives)
-# httpx>=0.27.0
+httpx>=0.27.0
 # apscheduler>=3.10.0
 # sendgrid>=6.11.0
+python-dotenv>=1.0.0

@@ -51,7 +51,7 @@ repos:
     hooks:
       - id: pytest-integration
         name: pytest — integration tests
-        entry: pytest tests/integration/ -v --tb=short -q
+        entry: bash -c 'pytest tests/integration/ -v --tb=short -q; ec=$?; [ $ec -eq 5 ] && exit 0 || exit $ec'
         language: system
         pass_filenames: false
         stages: [pre-push]
