@@ -2,7 +2,7 @@
 
 AI tool that ingests public commercial real estate data, scores distress signals, and delivers a ranked digest before 8am daily.
 
-**Status:** Sprint active (2026-04-28 to 2026-05-06)
+**Status:** Sprint active — Phase A complete, Phase B pending Strands pivot (2026-04-28 to 2026-05-06) | **Today:** Day 4 of 8 (2026-05-01)
 
 ---
 
@@ -21,7 +21,7 @@ Bronze (raw API cache) → Silver (ZIP-normalized, 30-day window) → Gold (scor
 
 Each data source is wrapped in an MCP server (`src/mcp/`). Claude never calls external APIs directly — it calls registered tools. Every API response is cached to SQLite on first fetch.
 
-**Phase A (through 2026-05-01):** Thin adapter + OpenRouter — proves the pipeline.  
+**Phase A (completed 2026-05-01):** Thin adapter + OpenRouter — pipeline, digest, brief, and demo runner are in place.  
 **Saturday 2026-05-02:** Thin adapter replaced with Strands Agents SDK when Claude API key arrives.  
 **Phase B (2026-05-02–2026-05-06):** Full Strands agentic loop, all 7 sources, delivery, frontend integrated.
 
@@ -49,6 +49,8 @@ cp .env.example .env
 python run_demo.py --zips 10001,60601,90210
 ```
 
+Supported demo ZIPs are currently `10001`, `33101`, `60601`, and `90210`.
+
 ## Development
 
 ```bash
@@ -58,6 +60,9 @@ pre-commit install --install-hooks
 # Run tests
 pytest tests/unit/
 pytest tests/integration/
+
+# Run full backend regression suite
+pytest tests/unit/ tests/integration/
 
 # Lint + format
 ruff check src/ tests/
@@ -86,3 +91,10 @@ All branches must use `feat/*`, `fix/*`, `doc/*`, or `hotfix/*` prefixes. CI enf
 FRED · ATTOM · RentCast · BLS · Census ACS · FHFA · HUD
 
 All responses cached in Bronze layer on first fetch. Rate-limited sources (RentCast: 50 calls/month) are never called twice for the same data.
+
+## Current Demo Status
+
+- Bronze, Silver, and Gold layers are implemented for the 3-source Phase A slice
+- Opportunity brief generation is implemented for the top-ranked ZIP
+- `run_demo.py` orchestrates Bronze → Silver → Gold → Brief for supported demo ZIPs
+- Backend verification currently stands at `125` passing tests across unit and integration coverage

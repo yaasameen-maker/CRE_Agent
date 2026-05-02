@@ -1,5 +1,48 @@
 # Build Notes — CRE Signal Agent
 
+## 2026-05-01 — Day 4: Phase A Closed Out
+
+**Status:** Bronze, Silver, Gold, brief generation, and the Phase A demo runner are now implemented for the 3-source slice. Backend verification is green with 125 passing unit and integration tests.
+
+### What's Done
+- Silver layer completed: ZIP normalization, 30-day freshness gating, null handling
+- Gold layer completed: `score_signals` tool-call parsing fixed, ranked digest generation working
+- Brief generation completed: typed opportunity brief output plus Markdown rendering
+- Demo runner completed: `python run_demo.py --zips ...` now orchestrates Bronze → Silver → Gold → Brief
+- Integration coverage added for end-to-end demo orchestration with temp SQLite
+
+### Demo Status
+- Supported demo ZIPs: `10001`, `33101`, `60601`, `90210`
+- Unsupported ZIPs fail fast with a clear supported list
+- Partial success is allowed as long as at least one ZIP produces a Gold record
+
+### Next Milestone
+- Saturday 2026-05-02: Architecture pivot to Strands Agents SDK
+- Smoke-test `python run_demo.py` after the pivot before any Phase B feature work
+
+---
+
+## 2026-04-30 — Day 3: Phase A Momentum
+
+**Status:** 3 PRs merged, 85 unit tests passing. Bronze layer fully operational with FRED, BLS, and RentCast MCP servers. All API responses cached to SQLite.
+
+### What's Done
+- PR #1: DevSecOps pipeline (CI, pre-commit, security scanning, branch protection)
+- PR #2: LLM abstraction layer (`src/llm/adapter.py`, `OpenRouterAdapter`, `cache.py`, `SCORING_SYSTEM_PROMPT` stub)
+- PR #3: MCP servers + Bronze cache (`src/mcp/{fred,bls,rentcast}.py`, `src/mcp/_db.py`, `data/migrations/001_bronze_schema.sql`)
+
+### In Progress (Days 3–4)
+- Silver layer: ZIP normalization, 30-day rolling window, null handling
+- Gold layer: Signal scoring (vacancy, rent trend, employment trend thresholds)
+- Brief generator: 1 opportunity brief per top signal
+- Demo script: `python run_demo.py --zips 10001,33101,60601`
+
+### Next Milestone
+- End of Day 4 (2026-05-01): Phase A complete, all tests passing, demo produces ranked digest + 1 brief
+- Saturday 2026-05-02: Architecture pivot to Strands Agents SDK (thin adapter replaced, Claude API activates)
+
+---
+
 ## 2026-04-28 — Day 1 (continued): Architecture Pivot Decision
 
 ### Strands Agents SDK — Adopted for Phase B (Saturday 2026-05-02)
@@ -57,6 +100,4 @@ After reviewing the full Strands SDK, we decided to use it — but not yet.
 - **Sequential build confirmed:** Phase 2 (signal scoring) cannot start until Phase 1 pipeline is stable and returning clean data from all 7 sources.
 
 ### Open Questions
-- What ZIP codes should we target for the demo? Need to pick 3–5 markets to constrain API usage.
-- RentCast free tier = 50 calls/month. What's the minimum ZIP set that makes a compelling demo?
 - Confirm Yaasameen's frontend tech stack (React? Next.js?) so AGENTS.md and schema docs can be more specific.

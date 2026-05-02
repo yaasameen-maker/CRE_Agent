@@ -85,3 +85,41 @@ class TestBronzeSet:
                 assert result == {"averageRent": 3200.0}
         finally:
             os.unlink(path)
+
+
+class TestBronzeGetWithMeta:
+    def test_miss_returns_none(self) -> None:
+        path = _make_temp_db()
+        try:
+            with patch.dict(os.environ, {"CRE_DB_PATH": path}):
+                from src.mcp._db import bronze_get_with_meta
+
+                assert bronze_get_with_meta("fred", "MISSING") is None
+        finally:
+            os.unlink(path)
+
+    def test_hit_returns_data_and_timestamp(self) -> None:
+        path = _make_temp_db()
+        try:
+            with patch.dict(os.environ, {"CRE_DB_PATH": path}):
+                from src.mcp._db import bronze_get_with_meta, bronze_set
+
+                bronze_set("fred", "DRSREACBS", {"observations": [{"value": "2.5"}]})
+                result = bronze_get_with_meta("fred", "DRSREACBS")
+                assert result is not None
+                data, fetched_at = result
+                assert data == {"observations": [{"value": "2.5"}]}
+                assert "T" in fetched_at  # ISO 8601
+        finally:
+            os.unlink(path)
+
+    def test_different_sources_isolated(self) -> None:
+        path = _make_temp_db()
+        try:
+            with patch.dict(os.environ, {"CRE_DB_PATH": path}):
+                from src.mcp._db import bronze_get_with_meta, bronze_set
+
+                bronze_set("fred", "KEY_A", {"v": 1})
+                assert bronze_get_with_meta("bls", "KEY_A") is None
+        finally:
+            os.unlink(path)

@@ -1,11 +1,13 @@
 # CRE Signal Agent — Architecture
 
+**Current Status (2026-05-01):** Phase A backend work is complete. Bronze, Silver, Gold, brief generation, and the demo runner are operational for the 3-source slice. Backend verification is green with 125 passing unit and integration tests. Architecture pivot to Strands remains scheduled for Saturday 2026-05-02.
+
 ## Build Phases
 
 This project is built in two architectural phases:
 
 **Phase A — Demo (Days 1–4, through Friday 2026-05-01)**
-Thin custom LLM adapter in `src/llm/`. Single-shot calls to Claude via OpenRouter. Proves the Medallion pipeline, MCP tool pattern, scoring, and brief generation all work correctly before the Claude API key arrives.
+Thin custom LLM adapter in `src/llm/`. Single-shot calls to Claude via OpenRouter. This phase now proves the Medallion pipeline, MCP tool pattern, scoring, brief generation, and `run_demo.py` end-to-end before the Claude API key arrives.
 
 **Saturday 2026-05-02 — Architecture Pivot**
 Thin adapter is replaced with the Strands Agents SDK. Claude API key activates. Prompt caching turns on automatically — `cache_control` blocks are built into prompts from day 1 so nothing changes except the provider.
@@ -63,6 +65,12 @@ HUD            →  get_hud_vacancy
 | Frontend | Renders Gold layer JSON | Browser | Yaasameen |
 
 Bronze is append-only. Silver is rebuilt from Bronze on each run. Gold is rebuilt from Silver on each run.
+
+Phase A implementation now includes:
+- `src/pipeline/normalizer.py` for Silver extraction from cached Bronze rows
+- `src/pipeline/scorer.py` for Gold scoring and digest ranking
+- `src/pipeline/briefs.py` for typed opportunity brief generation and rendering
+- `src/pipeline/demo.py` plus `run_demo.py` for the demo orchestration path
 
 ## Strands Agentic Loop (Phase B Target)
 
@@ -134,7 +142,7 @@ Registered tools (the contract Claude sees via @tool schema):
 
 The Gold layer functions as the retrieval base for brief generation. When Claude generates an opportunity brief, it retrieves verified property records and market data from the Gold layer as grounding context before writing. Every claim in a generated brief is traceable to a specific source row — no hallucinated data points.
 
-This is enforced structurally: the brief generation prompt includes the raw Gold layer records for the target ZIP as retrieved context. Claude cannot reference a data point that was not passed in.
+This is enforced structurally: the brief generation prompt includes the target ZIP's Gold record plus its matching Silver source fields. Claude cannot reference a data point that was not passed in.
 
 ## LLM Abstraction Layer
 

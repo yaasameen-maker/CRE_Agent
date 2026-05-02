@@ -42,6 +42,19 @@ def bronze_get(source: str, cache_key: str) -> dict[str, object] | None:
     return json.loads(row["response_json"]) if row else None
 
 
+def bronze_get_with_meta(source: str, cache_key: str) -> tuple[dict[str, object], str] | None:
+    """Return (data, fetched_at) for *source*+*cache_key*, or None on miss."""
+    conn = _get_conn()
+    row = conn.execute(
+        "SELECT response_json, fetched_at FROM bronze_cache WHERE source = ? AND cache_key = ?",
+        (source, cache_key),
+    ).fetchone()
+    conn.close()
+    if row is None:
+        return None
+    return json.loads(row["response_json"]), row["fetched_at"]
+
+
 def bronze_set(source: str, cache_key: str, data: dict[str, object]) -> None:
     """Write *data* to Bronze, replacing any existing entry for *source*+*cache_key*."""
     now = datetime.now(UTC).isoformat()
