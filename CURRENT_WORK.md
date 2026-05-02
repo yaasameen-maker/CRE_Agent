@@ -1,41 +1,45 @@
 # Current Work — CRE Signal Agent
 
-**Last updated:** 2026-05-01
-**Sprint day:** 4 of 8 (Phase A complete — 10 of 11 Phase A tasks complete)
+**Last updated:** 2026-05-02
+**Sprint day:** 5 of 8, Saturday (Phase A complete and merged, Phase B pivot starting now)
 
 ---
 
-## Phase A: Demo Build (Days 1–4, through 2026-05-01)
+## Phase A: Demo Build (Days 1–4, through 2026-05-01) ✅ COMPLETE
 
 Goal: Prove the pipeline works. 3 data sources (FRED, BLS, RentCast), thin LLM adapter + OpenRouter, `python run_demo.py` producing a ranked digest and one opportunity brief.
 
+All tasks complete and merged to main:
+
 | Owner | Task | Status | PR | Tests |
 |-------|------|--------|----|----|
-| Beatrice | DevSecOps pipeline + project docs | ✅ Done | #1 | — |
-| Beatrice | LLM abstraction layer (thin adapter + OpenRouter) | ✅ Done | #2 | Passing |
-| Beatrice | FRED + BLS + RentCast MCP servers | ✅ Done | #3 | 85 passing |
-| Beatrice | Bronze layer (SQLite cache for 3 sources) | ✅ Done | #3 | Included in #3 |
-| Beatrice | Silver layer (ZIP normalization, 30-day window) | ✅ Done | — | Passing |
-| Beatrice | Gold layer (signal scoring, ranked digest) | ✅ Done | — | Passing |
-| Beatrice | Brief generator (1 brief per top signal) | ✅ Done | — | Passing |
-| Beatrice | `run_demo.py` script | ✅ Done | — | Passing |
-| Yaasameen | Frontend scaffold | ⏳ Day 2–3 | — | — |
-| Both | Shared JSON schema (`docs/schema/`) | ⏳ Day 3–4 | — | — |
+| Beatrice | DevSecOps pipeline + project docs | ✅ Merged | #1 | — |
+| Beatrice | LLM abstraction layer (thin adapter + OpenRouter) | ✅ Merged | #2 | 125 total |
+| Beatrice | FRED + BLS + RentCast MCP servers | ✅ Merged | #3 | 85 in #3 |
+| Beatrice | Bronze layer (SQLite cache for 3 sources) | ✅ Merged | #3 | Included |
+| Beatrice | Silver layer (ZIP normalization, 30-day window) | ✅ Merged | #4 | Included |
+| Beatrice | Gold layer (signal scoring, ranked digest) | ✅ Merged | #4 | Included |
+| Beatrice | Brief generator (1 brief per top signal) | ✅ Merged | #4 | Included |
+| Beatrice | `run_demo.py` script | ✅ Merged | #4 | Passing |
+| Yaasameen | Frontend scaffold | ✅ Merged | #5 | — |
+| Both | Shared JSON schema (`docs/schema/`) | ✅ Merged | #5 | — |
+
+**Backend verification: 125 passing tests.** Frontend ready to consume Gold layer JSON. Phase A proves the pipeline works end-to-end.
 
 ---
 
-## Architecture Pivot (Saturday 2026-05-02)
+## Architecture Pivot (Saturday 2026-05-02) — IN PROGRESS
 
 Claude API key arrives. Thin adapter replaced with Strands. Prompt caching activates automatically.
 
-| Owner | Task | Status |
-|-------|------|--------|
-| Beatrice | Add `ANTHROPIC_API_KEY` to `.env`, set `LLM_PROVIDER=anthropic` | Saturday AM |
-| Beatrice | Delete `src/llm/adapter.py`, `openrouter.py` | Saturday AM |
-| Beatrice | Create `src/agents/signal_agent.py` (Strands Agent) | Saturday AM |
-| Beatrice | Smoke test end-to-end with Strands | Saturday PM |
+| Owner | Task | Status | Target |
+|-------|------|--------|--------|
+| Beatrice | Add `ANTHROPIC_API_KEY` to `.env`, set `LLM_PROVIDER=anthropic` | ⏳ In Progress | Saturday AM |
+| Beatrice | Delete `src/llm/adapter.py`, `openrouter.py` | ⏳ In Progress | Saturday AM |
+| Beatrice | Create `src/agents/signal_agent.py` (Strands Agent) | ⏳ In Progress | Saturday AM |
+| Beatrice | Smoke test `python run_demo.py` with Strands | ⏳ In Progress | Saturday PM |
 
-**Phase B begins ONLY AFTER:** Strands pivot smoke test passes + all tests still pass afterward.
+**Phase B gates:** Strands pivot smoke test must pass + all tests still passing + demo produces same digest/brief as Phase A.
 
 ---
 
@@ -60,11 +64,15 @@ Goal: All 7 data sources, full Strands agentic loop, delivery pipeline, frontend
 
 ## Blocked / Waiting
 
-| Task | Blocker |
-|------|---------|
-| Claude API (Strands pivot) | API key arriving Saturday 2026-05-02 |
+None — Phase A is complete. Strands pivot is in progress (Saturday 2026-05-02).
 
 ## Recently Completed
+
+### 2026-05-02 — Phase A complete and merged to main
+- All 11 Phase A tasks shipped: DevSecOps, LLM abstraction, 3 MCP servers, Bronze/Silver/Gold layers, brief generation, demo runner, frontend scaffold, schema
+- 125 passing tests: 85 in MCP/Bronze PR #3, remainder in pipeline/demo/integration coverage
+- Both backend and frontend code on `main` and ready for Saturday pivot
+- Demo ZIPs working: `10001`, `33101`, `60601`, `90210` produce ranked digest + opportunity brief
 
 ### 2026-05-01 — Phase A backend closeout
 - `src/pipeline/normalizer.py`: Silver normalization with freshness gating and null handling

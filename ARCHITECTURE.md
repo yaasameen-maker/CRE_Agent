@@ -1,16 +1,16 @@
 # CRE Signal Agent — Architecture
 
-**Current Status (2026-05-01):** Phase A backend work is complete. Bronze, Silver, Gold, brief generation, and the demo runner are operational for the 3-source slice. Backend verification is green with 125 passing unit and integration tests. Architecture pivot to Strands remains scheduled for Saturday 2026-05-02.
+**Current Status (2026-05-02):** Phase A is complete and merged to main. All 11 tasks shipped: Bronze, Silver, Gold, brief generation, demo runner for the 3-source slice, frontend scaffold, and shared schema. Backend verification: 125 passing unit and integration tests. Architecture pivot to Strands (Saturday 2026-05-02) is now in progress.
 
 ## Build Phases
 
 This project is built in two architectural phases:
 
-**Phase A — Demo (Days 1–4, through Friday 2026-05-01)**
-Thin custom LLM adapter in `src/llm/`. Single-shot calls to Claude via OpenRouter. This phase now proves the Medallion pipeline, MCP tool pattern, scoring, brief generation, and `run_demo.py` end-to-end before the Claude API key arrives.
+**Phase A — Demo (Days 1–4, through Friday 2026-05-01) ✅ COMPLETE**
+Thin custom LLM adapter in `src/llm/`. Single-shot calls to Claude via OpenRouter. Phase A proved the Medallion pipeline, MCP tool pattern, scoring, brief generation, and `run_demo.py` end-to-end. All 11 tasks shipped and merged to main with 125 passing tests.
 
-**Saturday 2026-05-02 — Architecture Pivot**
-Thin adapter is replaced with the Strands Agents SDK. Claude API key activates. Prompt caching turns on automatically — `cache_control` blocks are built into prompts from day 1 so nothing changes except the provider.
+**Saturday 2026-05-02 — Architecture Pivot (IN PROGRESS)**
+Thin adapter is being replaced with the Strands Agents SDK. Claude API key activates. Prompt caching turns on automatically — `cache_control` blocks are built into prompts from day 1 so nothing changes except the provider.
 
 **Phase B — Full MVP (Days 5–8, Saturday onwards)**
 Strands agentic loop (Perceive → Think → Act → Observe → Adjust) replaces the manual scoring orchestration. `src/llm/adapter.py`, `openrouter.py`, and `anthropic.py` are deleted. `src/agents/signal_agent.py` is added. `src/mcp/` is completely unchanged — Strands consumes the same `@tool` decorated functions.

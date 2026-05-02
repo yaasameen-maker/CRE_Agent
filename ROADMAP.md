@@ -5,35 +5,39 @@
 
 ---
 
-## Phase A: Demo Build — Prove It Works (Days 1–4, through 2026-05-01)
+## Phase A: Demo Build — Prove It Works (Days 1–4, through 2026-05-01) ✅ COMPLETE
 
 Goal: End-to-end pipeline running with 3 data sources, scored by Claude via OpenRouter, producing a ranked digest and one opportunity brief. Thin adapter architecture — gets replaced Saturday.
 
-- [x] DevSecOps pipeline (CI, pre-commit, branch protection) `[Beatrice]`
-- [x] Project documentation (CLAUDE.md, AGENTS.md, ARCHITECTURE.md, ROADMAP.md, etc.) `[Beatrice]`
-- [x] LLM abstraction layer — thin adapter + OpenRouter adapter `[Beatrice]` (PR #2)
-- [x] MCP servers: FRED, BLS, RentCast (3 of 7) `[Beatrice]` (PR #3)
-- [x] Bronze layer: SQLite cache for 3 sources `[Beatrice]` (PR #3 — 001_bronze_schema.sql, 85 unit tests)
-- [x] Silver layer: ZIP normalization, 30-day window, null handling `[Beatrice]`
-- [x] Gold layer: signal scoring (3 signals), ranked digest `[Beatrice]`
-- [x] Brief generator: one opportunity brief per top signal `[Beatrice]`
-- [x] Demo run script: `python run_demo.py --zips <zip1,zip2,zip3>` `[Beatrice]`
-- [ ] Frontend scaffold (project setup, routing, layout) `[Yaasameen]`
-- [ ] Shared JSON schema definition `[Both]`
+All Phase A tasks shipped and merged to main. Final status:
+
+- [x] DevSecOps pipeline (CI, pre-commit, branch protection) `[Beatrice]` PR #1
+- [x] Project documentation (CLAUDE.md, AGENTS.md, ARCHITECTURE.md, ROADMAP.md, etc.) `[Beatrice]` PR #1
+- [x] LLM abstraction layer — thin adapter + OpenRouter adapter `[Beatrice]` PR #2
+- [x] MCP servers: FRED, BLS, RentCast (3 of 7) `[Beatrice]` PR #3
+- [x] Bronze layer: SQLite cache for 3 sources `[Beatrice]` PR #3 (001_bronze_schema.sql, 85 unit tests)
+- [x] Silver layer: ZIP normalization, 30-day window, null handling `[Beatrice]` PR #4
+- [x] Gold layer: signal scoring (3 signals), ranked digest `[Beatrice]` PR #4
+- [x] Brief generator: one opportunity brief per top signal `[Beatrice]` PR #4
+- [x] Demo run script: `python run_demo.py --zips <zip1,zip2,zip3>` `[Beatrice]` PR #4
+- [x] Frontend scaffold (project setup, routing, layout) `[Yaasameen]` PR #5
+- [x] Shared JSON schema definition `[Both]` PR #5
+
+**Metrics:** 125 passing unit and integration tests. `run_demo.py` produces ranked digest + opportunity brief for demo ZIPs.
 
 ---
 
-## Architecture Pivot (Saturday 2026-05-02)
+## Architecture Pivot (Saturday 2026-05-02) — IN PROGRESS
 
 Claude API key arrives. Thin adapter replaced with Strands. Prompt caching activates automatically. This happens AFTER Phase A is complete and smoke-tested.
 
-- [ ] Set `LLM_PROVIDER=anthropic`, add `ANTHROPIC_API_KEY` to `.env` `[Beatrice]` **← Day 4 or 5**
-- [ ] Replace `src/llm/` adapter with Strands Agents SDK `[Beatrice]`
-- [ ] Create `src/agents/signal_agent.py` — Strands Agent wiring model + system prompt + MCP tools `[Beatrice]`
-- [ ] Confirm prompt caching active (cache_control blocks built in from day 1, now live) `[Beatrice]`
-- [ ] Smoke test end-to-end before beginning Phase B `[Beatrice]`
+- [ ] Set `LLM_PROVIDER=anthropic`, add `ANTHROPIC_API_KEY` to `.env` `[Beatrice]` **← TODAY (Day 5)**
+- [ ] Replace `src/llm/` adapter with Strands Agents SDK `[Beatrice]` **← TODAY (Day 5)**
+- [ ] Create `src/agents/signal_agent.py` — Strands Agent wiring model + system prompt + MCP tools `[Beatrice]` **← TODAY (Day 5)**
+- [ ] Confirm prompt caching active (cache_control blocks built in from day 1, now live) `[Beatrice]` **← TODAY (Day 5)**
+- [ ] Smoke test `python run_demo.py` end-to-end before beginning Phase B `[Beatrice]` **← TODAY (Day 5)**
 
-> **Phase B does not begin until:** Phase A is complete (now done), Saturday 2026-05-02 pivot is confirmed working, and full test suite passes after the Strands migration smoke test.
+> **Phase B begins after:** Saturday 2026-05-02 pivot is confirmed working and full test suite passes after the Strands migration smoke test.
 
 ---
 

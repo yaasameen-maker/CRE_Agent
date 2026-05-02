@@ -2,7 +2,7 @@
 
 AI tool that ingests public commercial real estate data, scores distress signals, and delivers a ranked digest before 8am daily.
 
-**Status:** Sprint active — Phase A complete, Phase B pending Strands pivot (2026-04-28 to 2026-05-06) | **Today:** Day 4 of 8 (2026-05-01)
+**Status:** Sprint active — Phase A complete and merged (2026-04-28 to 2026-05-01), Phase B begins after Strands pivot | **Today:** Day 5 of 8, Saturday (2026-05-02)
 
 ---
 
@@ -21,8 +21,8 @@ Bronze (raw API cache) → Silver (ZIP-normalized, 30-day window) → Gold (scor
 
 Each data source is wrapped in an MCP server (`src/mcp/`). Claude never calls external APIs directly — it calls registered tools. Every API response is cached to SQLite on first fetch.
 
-**Phase A (completed 2026-05-01):** Thin adapter + OpenRouter — pipeline, digest, brief, and demo runner are in place.  
-**Saturday 2026-05-02:** Thin adapter replaced with Strands Agents SDK when Claude API key arrives.  
+**Phase A (completed 2026-05-01, merged to main):** Thin adapter + OpenRouter — pipeline, digest, brief, and demo runner are in place.  
+**Saturday 2026-05-02 (now):** Thin adapter replaced with Strands Agents SDK when Claude API key arrives — **next task**.  
 **Phase B (2026-05-02–2026-05-06):** Full Strands agentic loop, all 7 sources, delivery, frontend integrated.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full system diagram and design decisions.
@@ -92,9 +92,18 @@ FRED · ATTOM · RentCast · BLS · Census ACS · FHFA · HUD
 
 All responses cached in Bronze layer on first fetch. Rate-limited sources (RentCast: 50 calls/month) are never called twice for the same data.
 
-## Current Demo Status
+## Current Phase Status
 
-- Bronze, Silver, and Gold layers are implemented for the 3-source Phase A slice
-- Opportunity brief generation is implemented for the top-ranked ZIP
-- `run_demo.py` orchestrates Bronze → Silver → Gold → Brief for supported demo ZIPs
-- Backend verification currently stands at `125` passing tests across unit and integration coverage
+**Phase A: Complete and merged to main**
+- Bronze, Silver, and Gold layers fully implemented for the 3-source slice (FRED, BLS, RentCast)
+- Opportunity brief generation with Markdown rendering implemented
+- `run_demo.py` orchestrates Bronze → Silver → Gold → Brief for supported demo ZIPs (`10001`, `33101`, `60601`, `90210`)
+- Backend verification: **125 passing tests** across unit and integration coverage
+- Frontend scaffold complete: React/Vite/TS, routing, layout, shared JSON schema definitions
+
+**Phase B: Pending Strands pivot (Saturday 2026-05-02)**
+- Replace `src/llm/` thin adapter with Strands Agents SDK
+- Activate Claude API key (`ANTHROPIC_API_KEY`)
+- Remaining 4 MCP servers: ATTOM, FHFA, Census ACS, HUD
+- Full 7-signal scoring via Strands agentic loop
+- Delivery pipeline: APScheduler (8am trigger), SendGrid email, Slack digest

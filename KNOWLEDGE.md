@@ -92,10 +92,10 @@ If one ZIP fails normalization or scoring, the demo should continue for the rema
 
 ---
 
-## Strands Migration (Phase A → Phase B, Saturday 2026-05-02)
+## Strands Migration (Phase A → Phase B, Saturday 2026-05-02 — IN PROGRESS)
 
 **Strands doesn't speak OpenRouter — that's why Phase A uses a thin adapter.**
-Strands has native Anthropic API support but requires LiteLLM as a bridge for OpenRouter. Using a bridge adds complexity and makes the Saturday swap harder. The thin adapter is the right call for Days 1–4.
+Strands has native Anthropic API support but requires LiteLLM as a bridge for OpenRouter. Using a bridge adds complexity and makes the Saturday swap harder. The thin adapter was the right call for Days 1–4.
 
 **The refactor is small by design.**
 Everything in Phase A is structured to make the Saturday swap a one-day job:
@@ -103,14 +103,14 @@ Everything in Phase A is structured to make the Saturday swap a one-day job:
 - `src/mcp/*.py` — `@tool` decorated functions in exactly the format Strands expects
 - `src/llm/adapter.py` — the only thing getting deleted
 
-**What gets deleted Saturday:**
+**What is getting deleted Saturday (today):**
 `src/llm/adapter.py`, `src/llm/openrouter.py`, `src/llm/anthropic.py`
 
-**What gets added Saturday:**
+**What is being added Saturday (today):**
 `src/agents/signal_agent.py` (~50 lines) — Strands `Agent(model=..., tools=[...], system_prompt=...)`
 
-**What is completely unchanged:**
-Bronze/Silver/Gold pipeline, all 7 MCP servers, `src/prompts/`, delivery code, all tests, frontend schema contract.
+**What is completely unchanged by the pivot:**
+Bronze/Silver/Gold pipeline, MCP servers (currently 3 of 7), `src/prompts/`, delivery code (built in Phase B), all tests, frontend schema contract.
 
-**Smoke test before starting Phase B work.**
-After the Saturday pivot, run `python run_demo.py` end-to-end before touching anything else. Confirm the Strands agent produces the same ranked digest and brief that the thin adapter produced on Friday.
+**Smoke test before Phase B work:**
+After the Saturday pivot, run `python run_demo.py` end-to-end before touching anything else. Confirm the Strands agent produces the same ranked digest and brief that the thin adapter produced on Friday. This is the gate to starting Phase B feature work.
