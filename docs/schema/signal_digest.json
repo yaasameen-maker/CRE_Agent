@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "signal_digest",
+  "title": "Signal Digest",
+  "description": "Gold-layer output: ranked list of distressed ZIP codes. Frontend reads this for the Digest List view.",
+  "type": "object",
+  "required": ["generated_at", "run_id", "zips"],
+  "additionalProperties": false,
+  "properties": {
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp of when this digest was produced"
+    },
+    "run_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this pipeline run"
+    },
+    "zips": {
+      "type": "array",
+      "description": "ZIP codes sorted ascending by rank (rank 1 = highest distress)",
+      "items": {
+        "type": "object",
+        "required": ["zip", "city", "state", "distress_score", "rank", "action", "signals", "brief_id"],
+        "additionalProperties": false,
+        "properties": {
+          "zip": { "type": "string", "pattern": "^[0-9]{5}$" },
+          "city": { "type": "string" },
+          "state": { "type": "string", "minLength": 2, "maxLength": 2 },
+          "distress_score": { "type": "number", "minimum": 0, "maximum": 100 },
+          "rank": { "type": "integer", "minimum": 1 },
+          "action": { "type": "string", "enum": ["Model", "Monitor", "Ignore"] },
+          "brief_id": { "type": "string", "format": "uuid" },
+          "signals": {
+            "type": "object",
+            "required": ["vacancy", "rent", "price_growth", "employment", "foreclosure"],
+            "additionalProperties": false,
+            "properties": {
+              "vacancy": {
+                "type": "object",
+                "required": ["value", "change_30d", "flag"],
+                "properties": {
+                  "value":      { "type": "number", "description": "Vacancy rate %" },
+                  "change_30d": { "type": "number", "description": "30-day change in percentage points" },
+                  "flag":       { "type": "boolean", "description": "true if change_30d > 5" }
+                }
+              },
+              "rent": {
+                "type": "object",
+                "required": ["value", "change_30d", "flag"],
+                "properties": {
+                  "value":      { "type": "number", "description": "30-day rent change %" },
+                  "change_30d": { "type": "number" },
+                  "flag":       { "type": "boolean", "description": "true if change_30d < -3" }
+                }
+              },
+              "price_growth": {
+                "type": "object",
+                "required": ["value", "annualized", "flag"],
+                "properties": {
+                  "value":      { "type": "number" },
+                  "annualized": { "type": "number", "description": "Annualized HPI growth %" },
+                  "flag":       { "type": "boolean", "description": "true if annualized < 1" }
+                }
+              },
+              "employment": {
+                "type": "object",
+                "required": ["value", "change_30d", "flag"],
+                "properties": {
+                  "value":      { "type": "number" },
+                  "change_30d": { "type": "number", "description": "30-day employment change %" },
+                  "flag":       { "type": "boolean", "description": "true if change_30d < -2" }
+                }
+              },
+              "foreclosure": {
+                "type": "object",
+                "required": ["count", "flag"],
+                "properties": {
+                  "count": { "type": "integer", "minimum": 0, "description": "Active filings in trailing 30 days" },
+                  "flag":  { "type": "boolean", "description": "true if count > 0" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
