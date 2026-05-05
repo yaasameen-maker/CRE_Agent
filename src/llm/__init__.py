@@ -21,4 +21,8 @@ def get_adapter() -> LLMAdapter:
     provider = os.getenv("LLM_PROVIDER", "openrouter")
     if provider == "openrouter":
         return OpenRouterAdapter()
-    raise ValueError(f"Unknown LLM_PROVIDER: {provider!r}. Valid values: 'openrouter'")
+    if provider == "anthropic":
+        from src.llm.anthropic import AnthropicAdapter
+
+        return AnthropicAdapter()
+    raise ValueError(f"Unknown LLM_PROVIDER: {provider!r}. Valid values: 'openrouter', 'anthropic'")
