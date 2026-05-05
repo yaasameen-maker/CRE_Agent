@@ -68,6 +68,11 @@ All Phase A tasks shipped and merged to main. Final status:
 - [ ] Scope filter in coordinator.py
 - [ ] NYC demo ZIPs in demo.py
 
+### Block 6 — Cleanup PR (after smoke test)
+- [ ] Delete `src/llm/openrouter.py`, `src/llm/adapter.py`, `src/llm/__init__.py`
+- [ ] Delete `tests/unit/llm/` directory
+- [ ] Remove openrouter from requirements.txt
+
 ### Block 7 — Integration & Demo
 - [ ] `tests/integration/test_full_pipeline.py` — full 7-source pipeline test
 - [ ] All tests green before PR

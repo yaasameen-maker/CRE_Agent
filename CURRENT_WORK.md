@@ -85,6 +85,13 @@ src/agents/
 | Scope filter in coordinator.py | Not started |
 | NYC demo ZIPs in demo.py | Not started |
 
+### Block 6 — Cleanup PR (after smoke test)
+| Task | Status |
+|------|--------|
+| Delete `src/llm/openrouter.py`, `src/llm/adapter.py`, `src/llm/__init__.py` | Not started |
+| Delete `tests/unit/llm/` directory | Not started |
+| Remove openrouter from requirements.txt | Not started |
+
 ### Block 7 — Integration & Demo
 | Task | Status |
 |------|--------|
