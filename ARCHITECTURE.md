@@ -1,6 +1,6 @@
 # CRE Signal Agent — Architecture
 
-**Current Status (2026-05-02):** Phase A is complete and merged to main. All 11 tasks shipped: Bronze, Silver, Gold, brief generation, demo runner for the 3-source slice, frontend scaffold, and shared schema. Backend verification: 125 passing unit and integration tests. Architecture pivot to Strands (Saturday 2026-05-02) is now in progress.
+**Current Status (2026-05-05):** Phase A is complete and merged to main (PRs #1-5, #8, #9). All 11 backend tasks shipped plus Yaasameen's Action Alerts view (PR #8) and Opportunity Brief detail view (PR #9). Backend verification: 124 passing unit and integration tests. Strands agent layer (`src/agents/`) not yet built — in progress for Phase B.
 
 ## Build Phases
 
@@ -12,24 +12,37 @@ Thin custom LLM adapter in `src/llm/`. Single-shot calls to Claude via OpenRoute
 **Saturday 2026-05-02 — Architecture Pivot (IN PROGRESS)**
 Thin adapter is being replaced with the Strands Agents SDK. Claude API key activates. Prompt caching turns on automatically — `cache_control` blocks are built into prompts from day 1 so nothing changes except the provider.
 
-**Phase B — Full MVP (Days 5–8, Saturday onwards)**
-Strands agentic loop (Perceive → Think → Act → Observe → Adjust) replaces the manual scoring orchestration. `src/llm/adapter.py`, `openrouter.py`, and `anthropic.py` are deleted. `src/agents/signal_agent.py` is added. `src/mcp/` is completely unchanged — Strands consumes the same `@tool` decorated functions.
+**Phase B — Full MVP (Days 5–8) — Yaasameen V2 Architecture Adopted**
+V2 design uses a coordinator/subagent pattern: one `signal_agent` per ZIP runs in parallel, results flow to an `execution_agent` that classifies and dispatches delivery. `src/llm/` is deleted. `src/agents/` is the new LLM entry point.
 
-Target Strands structure:
+Target Phase B structure:
 ```
 src/agents/
-  signal_agent.py    # Strands Agent(model=claude, tools=[all MCP tools], system=SCORING_PROMPT)
+  signal_agent.py      # Strands Agent, scores one ZIP, forced tool use
+  coordinator.py       # asyncio.gather N signal_agent calls in parallel
+  execution_agent.py   # Model/Monitor/Ignore classification + delivery dispatch
+  monitor.py           # APScheduler CronTrigger(hour=8, ET)
 
 src/llm/
-  cache.py           # cache_control helpers — kept from demo phase
-  # adapter.py, openrouter.py, anthropic.py are deleted
+  cache.py             # cache_control helpers — kept from demo phase
+  # adapter.py, openrouter.py deleted
 
 src/mcp/
-  [7 servers]        # Unchanged — Strands reads the same @tool decorated functions
+  [7 servers]          # Unchanged — Strands reads the same @tool decorated functions
+
+src/pipeline/
+  action.py            # ActionClassifier + ActionLabel enum (MODEL/MONITOR/IGNORE)
+  delivery.py          # SendGrid email digest + Slack post_message
+  config.py            # NYC_ZIP_CODES frozenset, SCOPE_NYC_ONLY env toggle
 
 src/prompts/
-  scoring.py         # System prompt constants — unchanged between phases
+  scoring.py           # System prompt constants — unchanged between phases
 ```
+
+**Execution Agent classification thresholds:**
+- MODEL (score ≥ 70): opportunity brief + email digest + Slack alert
+- MONITOR (score 40–69): watchlist entry + Slack notification
+- IGNORE (score < 40): log only, no delivery
 
 ---
 
@@ -72,20 +85,29 @@ Phase A implementation now includes:
 - `src/pipeline/briefs.py` for typed opportunity brief generation and rendering
 - `src/pipeline/demo.py` plus `run_demo.py` for the demo orchestration path
 
-## Strands Agentic Loop (Phase B Target)
+## Strands Agentic Loop (Phase B — Yaasameen V2 Design)
 
-The Phase B architecture replaces the manual scoring pipeline with a Strands-driven agentic loop:
+The Phase B architecture uses a coordinator/subagent pattern. The coordinator spawns one `signal_agent` per ZIP in parallel. Results flow to the `execution_agent` for classification and delivery dispatch.
 
 ```
-Perceive  → Read Gold layer records for target ZIP codes
-Think     → Determine which signals breach thresholds
-Act       → Call MCP tools for additional context if needed
-Observe   → Validate scoring output against schema
-Adjust    → Retry or escalate if output is malformed
-Deliver   → Return ranked digest + opportunity briefs
+coordinator.py
+  └── asyncio.gather([signal_agent(zip) for zip in nyc_zips])
+        └── signal_agent.py (Strands Agent, one ZIP)
+              Perceive  → Fetch Silver/Gold data for the ZIP
+              Think     → Determine which signals breach thresholds
+              Act       → Call MCP tools for context (all 7 sources available)
+              Observe   → Validate score_signals tool output against schema
+              Adjust    → Retry on malformed output
+              Return    → ScoredZIP result
+
+  └── execution_agent.py
+        Classify  → MODEL (≥70) / MONITOR (40–69) / IGNORE (<40)
+        Dispatch  → brief + email + Slack (MODEL)
+                  → watchlist + Slack (MONITOR)
+                  → log only (IGNORE)
 ```
 
-The Agent is defined once and reused across scoring runs:
+Each `signal_agent` is a Strands Agent wired with the full tool set:
 
 ```python
 from strands import Agent
@@ -93,7 +115,7 @@ from src.mcp import fred, rentcast, bls, attom, fhfa, census, hud
 from src.prompts.scoring import SCORING_SYSTEM_PROMPT
 
 signal_agent = Agent(
-    model="claude-3-5-sonnet-20241022",
+    model="claude-sonnet-4-6",
     system_prompt=SCORING_SYSTEM_PROMPT,
     tools=[
         fred.get_delinquency_rate,

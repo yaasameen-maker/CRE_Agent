@@ -1,5 +1,16 @@
 # Build Notes — CRE Signal Agent
 
+## 2026-05-05 — Phase B planning + repo cleanup
+
+- Yaasameen's Action Alerts view (PR #8) and Opportunity Brief detail view (PR #9) merged
+- Architecture review: Yaasameen's V2 agent design adopted (coordinator → N signal_agents → execution_agent)
+- Director requirement: NYC scope narrowing + Phase C autonomous execution (future sprint)
+- Yaasameen's planned backend agent files (signal_agent, coordinator, etc.) not yet pushed — absorbed into Beatrice's scope
+- Root .gitignore created and committed
+- All docs reset to Day 7 reality
+
+---
+
 ## 2026-05-02 — Day 5 (Saturday): Architecture Pivot Begins
 
 **Status:** Phase A complete and all 11 tasks merged to main. Saturday pivot to Strands is in progress. Demo ZIPs produce ranked digest + opportunity brief. Frontend scaffold ready. Backend verification: 125 passing tests.

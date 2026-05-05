@@ -27,50 +27,57 @@ All Phase A tasks shipped and merged to main. Final status:
 
 ---
 
-## Architecture Pivot (Saturday 2026-05-02) — IN PROGRESS
-
-Claude API key arrives. Thin adapter replaced with Strands. Prompt caching activates automatically. This happens AFTER Phase A is complete and smoke-tested.
-
-- [ ] Set `LLM_PROVIDER=anthropic`, add `ANTHROPIC_API_KEY` to `.env` `[Beatrice]` **← TODAY (Day 5)**
-- [ ] Replace `src/llm/` adapter with Strands Agents SDK `[Beatrice]` **← TODAY (Day 5)**
-- [ ] Create `src/agents/signal_agent.py` — Strands Agent wiring model + system prompt + MCP tools `[Beatrice]` **← TODAY (Day 5)**
-- [ ] Confirm prompt caching active (cache_control blocks built in from day 1, now live) `[Beatrice]` **← TODAY (Day 5)**
-- [ ] Smoke test `python run_demo.py` end-to-end before beginning Phase B `[Beatrice]` **← TODAY (Day 5)**
-
-> **Phase B begins after:** Saturday 2026-05-02 pivot is confirmed working and full test suite passes after the Strands migration smoke test.
-
----
-
 ## Phase B: Full MVP (Days 5–8, 2026-05-02 to 2026-05-06)
 
-Goal: All 7 data sources, full Strands agentic loop, delivery pipeline, frontend integrated.
+### Block 0 — Documentation Reset ✅ COMPLETE
+- [x] ROADMAP.md — updated checklist
+- [x] CURRENT_WORK.md — Day 7 actual state
+- [x] ARCHITECTURE.md — Yaasameen V2 agent architecture
+- [x] README.md — current state and quick start
+- [x] NOTES.md + KNOWLEDGE.md — session entries
 
-### Backend `[Beatrice]`
+### Block 1 — Strands Agent Layer (gates everything)
+- [ ] `src/agents/signal_agent.py` — Strands Agent, one ZIP, forced tool use scoring
+- [ ] `src/agents/coordinator.py` — asyncio.gather N signal_agent calls in parallel
+- [ ] `src/agents/execution_agent.py` — Model/Monitor/Ignore classification + delivery dispatch
+- [ ] `src/agents/monitor.py` — APScheduler 8am CronTrigger(hour=8, ET)
+- [ ] Add ANTHROPIC_API_KEY to .env, set LLM_PROVIDER=anthropic
+- [ ] Smoke test run_demo.py end-to-end with Anthropic key
+- [ ] All 124 existing tests pass after pivot
 
-- [ ] Remaining MCP servers: ATTOM, FHFA, Census ACS, HUD `[Beatrice]`
-- [ ] Full 7-signal scoring via Strands agent `[Beatrice]`
-- [ ] Complete brief generation + action alert logic (Model / Monitor / Ignore) `[Beatrice]`
-- [ ] APScheduler: 8am daily trigger `[Beatrice]`
-- [ ] SendGrid email digest template `[Beatrice]`
-- [ ] Slack digest integration `[Beatrice]`
+### Block 2 — Pipeline Extensions
+- [ ] `src/pipeline/action.py` — ActionClassifier + ActionLabel enum (MODEL/MONITOR/IGNORE)
+- [ ] `src/pipeline/delivery.py` — SendGrid email digest + Slack post_message
 
-### Frontend `[Yaasameen]`
+### Block 3 — 4 New MCP Servers
+- [ ] `src/mcp/attom.py` — get_foreclosure_filings, get_deed_transfers (HIGH)
+- [ ] `src/mcp/fhfa.py` — get_price_index (MEDIUM)
+- [ ] `src/mcp/census.py` — get_demographics (MEDIUM)
+- [ ] `src/mcp/hud.py` — get_hud_vacancy (MEDIUM)
+- [ ] Unit tests for all 4
 
-- [ ] Digest list view (reads Gold layer JSON) `[Yaasameen]`
-- [ ] Opportunity card component `[Yaasameen]`
-- [ ] Brief detail view `[Yaasameen]`
-- [ ] Action alert display `[Yaasameen]`
+### Block 4 — 7-Signal Expansion
+- [ ] `data/migrations/003_silver_gold_7signal.sql`
+- [ ] Expand SilverRecord (4 new nullable fields) in normalizer.py
+- [ ] Update scoring prompt for 7 signals in prompts/scoring.py
+- [ ] Add new MCP tools to coordinator.py
+- [ ] Update affected tests
 
-### Integration `[Both]`
+### Block 5 — NYC Scope
+- [ ] `src/pipeline/config.py` — NYC_ZIP_CODES frozenset, SCOPE_NYC_ONLY env toggle
+- [ ] Scope filter in coordinator.py
+- [ ] NYC demo ZIPs in demo.py
 
-- [ ] End-to-end integration test `[Both]`
-- [ ] Demo preparation `[Both]`
+### Block 7 — Integration & Demo
+- [ ] `tests/integration/test_full_pipeline.py` — full 7-source pipeline test
+- [ ] All tests green before PR
 
 ---
 
 ## Post-MVP (Out of Sprint Scope)
 
-- [ ] Draft market memo generator (Claude → analyst-ready narrative) `[Beatrice]`
-- [ ] Watchlist / custom ZIP alerts `[Both]`
-- [ ] AI valuation model (AVM) `[Both]`
-- [ ] Multi-user access `[Both]`
+- [ ] Phase C: Autonomous acquisition pipeline (NYC commercial properties)
+- [ ] Draft market memo generator
+- [ ] Watchlist / custom ZIP alerts
+- [ ] AI valuation model (AVM)
+- [ ] Multi-user access

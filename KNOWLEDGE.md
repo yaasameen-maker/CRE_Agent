@@ -92,6 +92,38 @@ If one ZIP fails normalization or scoring, the demo should continue for the rema
 
 ---
 
+## Agent Architecture (Phase B)
+
+**Yaasameen's V2 coordinator/subagent design was adopted for Phase B.**
+The original plan had a single `signal_agent.py` scoring all ZIPs sequentially. V2 splits this into: a `coordinator.py` that runs one `signal_agent` per ZIP in parallel (via `asyncio.gather`), feeding results to an `execution_agent.py` for classification and delivery dispatch. Adopted because it better matches the real-world runtime pattern (ZIP-level parallelism) and maps cleanly to the Model/Monitor/Ignore delivery tiers.
+
+**`execution_agent.py` classification thresholds:**
+- MODEL (≥ 70): opportunity brief + email digest + Slack alert
+- MONITOR (40–69): watchlist entry + Slack notification
+- IGNORE (< 40): log only, no delivery
+
+**Agent files in `src/agents/` are all Beatrice's scope.**
+Yaasameen drafted the design but the backend agent files (signal_agent.py, coordinator.py, execution_agent.py, monitor.py) were not pushed to the repo — they are absorbed into Beatrice's Phase B implementation scope.
+
+---
+
+## NYC Scope Narrowing
+
+**SCOPE_NYC_ONLY is an env toggle, not hardcoded.**
+The director requirement to focus on NYC commercial real estate is implemented as a runtime toggle (`SCOPE_NYC_ONLY=true` in `.env`) in `src/pipeline/config.py`. The ZIP set is a frozenset constant (`NYC_ZIP_CODES`) in that file. When the toggle is off, the coordinator accepts any ZIP — this allows future geographic expansion without a code change.
+
+**Do not hardcode NYC filtering inside coordinator.py or signal_agent.py.**
+The scope filter lives only in `config.py` and is applied at the coordinator input boundary.
+
+---
+
+## Phase C (Autonomous Acquisition) — Out of Sprint Scope
+
+**Phase C is a future sprint, not Phase B.**
+The director outlined a Phase C involving autonomous acquisition pipeline for NYC commercial properties. This has its own spec and is explicitly out of the current 8-day sprint scope. Do not scope-creep Phase B to include Phase C features. Record it in ROADMAP.md Post-MVP section only.
+
+---
+
 ## Strands Migration (Phase A → Phase B, Saturday 2026-05-02 — IN PROGRESS)
 
 **Strands doesn't speak OpenRouter — that's why Phase A uses a thin adapter.**

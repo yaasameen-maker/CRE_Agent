@@ -1,13 +1,11 @@
 # Current Work — CRE Signal Agent
 
-**Last updated:** 2026-05-02
-**Sprint day:** 5 of 8, Saturday (Phase A complete and merged, Phase B pivot starting now)
+**Last updated:** 2026-05-05
+**Sprint day:** 7 of 8
 
 ---
 
 ## Phase A: Demo Build (Days 1–4, through 2026-05-01) ✅ COMPLETE
-
-Goal: Prove the pipeline works. 3 data sources (FRED, BLS, RentCast), thin LLM adapter + OpenRouter, `python run_demo.py` producing a ranked digest and one opportunity brief.
 
 All tasks complete and merged to main:
 
@@ -23,82 +21,90 @@ All tasks complete and merged to main:
 | Beatrice | `run_demo.py` script | ✅ Merged | #4 | Passing |
 | Yaasameen | Frontend scaffold | ✅ Merged | #5 | — |
 | Both | Shared JSON schema (`docs/schema/`) | ✅ Merged | #5 | — |
+| Yaasameen | Action Alerts view | ✅ Merged | #8 | — |
+| Yaasameen | Opportunity Brief detail view | ✅ Merged | #9 | — |
 
-**Backend verification: 125 passing tests.** Frontend ready to consume Gold layer JSON. Phase A proves the pipeline works end-to-end.
-
----
-
-## Architecture Pivot (Saturday 2026-05-02) — IN PROGRESS
-
-Claude API key arrives. Thin adapter replaced with Strands. Prompt caching activates automatically.
-
-| Owner | Task | Status | Target |
-|-------|------|--------|--------|
-| Beatrice | Add `ANTHROPIC_API_KEY` to `.env`, set `LLM_PROVIDER=anthropic` | ⏳ In Progress | Saturday AM |
-| Beatrice | Delete `src/llm/adapter.py`, `openrouter.py` | ⏳ In Progress | Saturday AM |
-| Beatrice | Create `src/agents/signal_agent.py` (Strands Agent) | ⏳ In Progress | Saturday AM |
-| Beatrice | Smoke test `python run_demo.py` with Strands | ⏳ In Progress | Saturday PM |
-
-**Phase B gates:** Strands pivot smoke test must pass + all tests still passing + demo produces same digest/brief as Phase A.
+**Backend verification: 124 passing tests.** Frontend has Action Alerts and Opportunity Brief views complete. Phase A proves the pipeline works end-to-end.
 
 ---
 
-## Phase B: Full MVP (Days 5–8, 2026-05-02 to 2026-05-06)
+## Architecture Pivot — IN PROGRESS
 
-Goal: All 7 data sources, full Strands agentic loop, delivery pipeline, frontend integrated.
+Yaasameen's V2 agent design adopted. `src/agents/` not yet built. The coordinator/subagent architecture replaces the original single `signal_agent.py` plan.
 
-| Owner | Task | Status |
-|-------|------|--------|
-| Beatrice | ATTOM, FHFA, Census ACS, HUD MCP servers | Day 5 |
-| Beatrice | Full 7-signal scoring via Strands | Day 5–6 |
-| Beatrice | Complete brief + action alert logic | Day 6 |
-| Beatrice | APScheduler 8am daily trigger | Day 6 |
-| Beatrice | SendGrid email + Slack digest | Day 7 |
-| Yaasameen | Digest list view | Day 5 |
-| Yaasameen | Opportunity card component | Day 5–6 |
-| Yaasameen | Brief detail view | Day 6 |
-| Yaasameen | Action alert display | Day 7 |
-| Both | End-to-end integration test + demo prep | Day 8 |
+Target structure:
+```
+src/agents/
+  signal_agent.py      # Strands Agent, scores one ZIP, forced tool use
+  coordinator.py       # asyncio.gather N signal_agent calls in parallel
+  execution_agent.py   # Model/Monitor/Ignore classification + delivery dispatch
+  monitor.py           # APScheduler CronTrigger(hour=8, ET)
+```
 
 ---
 
-## Blocked / Waiting
+## Phase B: Full MVP (Days 5–8) — IN PROGRESS
 
-None — Phase A is complete. Strands pivot is in progress (Saturday 2026-05-02).
+### Block 1 — Strands Agent Layer (gates everything)
+| Task | Status |
+|------|--------|
+| `src/agents/signal_agent.py` — Strands Agent, one ZIP | Not started |
+| `src/agents/coordinator.py` — asyncio.gather N signal_agents | Not started |
+| `src/agents/execution_agent.py` — classification + delivery dispatch | Not started |
+| `src/agents/monitor.py` — APScheduler 8am trigger | Not started |
+| Add ANTHROPIC_API_KEY to .env, set LLM_PROVIDER=anthropic | Not started |
+| Smoke test run_demo.py end-to-end | Not started |
+| All 124 existing tests pass after pivot | Not started |
+
+### Block 2 — Pipeline Extensions
+| Task | Status |
+|------|--------|
+| `src/pipeline/action.py` — ActionClassifier + ActionLabel enum | Not started |
+| `src/pipeline/delivery.py` — SendGrid email + Slack | Not started |
+
+### Block 3 — 4 New MCP Servers
+| Task | Status |
+|------|--------|
+| `src/mcp/attom.py` — get_foreclosure_filings, get_deed_transfers | Not started |
+| `src/mcp/fhfa.py` — get_price_index | Not started |
+| `src/mcp/census.py` — get_demographics | Not started |
+| `src/mcp/hud.py` — get_hud_vacancy | Not started |
+
+### Block 4 — 7-Signal Expansion
+| Task | Status |
+|------|--------|
+| `data/migrations/003_silver_gold_7signal.sql` | Not started |
+| Expand SilverRecord (4 new nullable fields) in normalizer.py | Not started |
+| Update scoring prompt for 7 signals | Not started |
+| Add new MCP tools to coordinator.py | Not started |
+
+### Block 5 — NYC Scope
+| Task | Status |
+|------|--------|
+| `src/pipeline/config.py` — NYC_ZIP_CODES frozenset, SCOPE_NYC_ONLY toggle | Not started |
+| Scope filter in coordinator.py | Not started |
+| NYC demo ZIPs in demo.py | Not started |
+
+### Block 7 — Integration & Demo
+| Task | Status |
+|------|--------|
+| `tests/integration/test_full_pipeline.py` | Not started |
+| All tests green before PR | Not started |
+
+---
 
 ## Recently Completed
 
+### 2026-05-05 — Documentation reset
+- Docs updated to reflect Day 7 actual state
+- Yaasameen's V2 architecture adopted: coordinator → N signal_agents → execution_agent
+- Director requirement captured: NYC scope narrowing + Phase C (future sprint)
+
+### 2026-05-04 — Yaasameen: Action Alerts + Opportunity Brief views merged (PRs #8, #9)
+- Action Alerts view now renders Model/Monitor/Ignore classifications from Gold layer JSON
+- Opportunity Brief detail view renders per-ZIP brief content
+
 ### 2026-05-02 — Phase A complete and merged to main
 - All 11 Phase A tasks shipped: DevSecOps, LLM abstraction, 3 MCP servers, Bronze/Silver/Gold layers, brief generation, demo runner, frontend scaffold, schema
-- 125 passing tests: 85 in MCP/Bronze PR #3, remainder in pipeline/demo/integration coverage
-- Both backend and frontend code on `main` and ready for Saturday pivot
+- 124 passing tests across unit and integration coverage
 - Demo ZIPs working: `10001`, `33101`, `60601`, `90210` produce ranked digest + opportunity brief
-
-### 2026-05-01 — Phase A backend closeout
-- `src/pipeline/normalizer.py`: Silver normalization with freshness gating and null handling
-- `src/pipeline/scorer.py`: Gold scoring fixed to consume `LLMResponse.tool_calls`
-- `src/pipeline/briefs.py`: Typed opportunity brief generation + Markdown renderer
-- `src/pipeline/demo.py`: Demo ZIP resolution and Bronze → Silver → Gold → Brief orchestration
-- `run_demo.py`: CLI entrypoint for `python run_demo.py --zips ...`
-- `tests/unit/pipeline/` + `tests/integration/test_demo_pipeline.py`: Pipeline, brief, and demo coverage added
-- **125 tests** passing across `tests/unit/` and `tests/integration/`
-
-### PR #3 (2026-04-29) — MCP servers + Bronze cache
-- `src/mcp/fred.py`: `get_delinquency_rate(series_id)`
-- `src/mcp/bls.py`: `get_employment_trend(metro_code)`
-- `src/mcp/rentcast.py`: `get_rent_trend(zip_code)`, `get_vacancy_rate(zip_code)`
-- `src/mcp/_db.py`: Bronze cache layer (`bronze_get()`, `bronze_set()`, `_get_conn()`)
-- `data/migrations/001_bronze_schema.sql`: Bronze schema
-- **85 unit tests** passing (all MCP servers + cache tested)
-
-### PR #2 (2026-04-28) — LLM abstraction layer
-- `src/llm/adapter.py`: `LLMAdapter` ABC
-- `src/llm/openrouter.py`: `OpenRouterAdapter` (active through Friday)
-- `src/llm/cache.py`: `cache_control` helpers for prompt caching
-- `src/prompts/scoring.py`: System prompt constants + `SCORING_SYSTEM_PROMPT` stub
-
-### PR #1 (2026-04-27) — DevSecOps pipeline + project docs
-- CI/CD workflows: `ci.yml`, `security.yml`, `branch-check.yml`
-- Pre-commit hooks: ruff, mypy, bandit, detect-secrets
-- Project documentation: CLAUDE.md, AGENTS.md, ARCHITECTURE.md, ROADMAP.md, KNOWLEDGE.md, NOTES.md
-- Architecture decisions finalized: thin adapter Phase A, Strands pivot Saturday 2026-05-02
