@@ -1,5 +1,45 @@
 # Build Notes — CRE Signal Agent
 
+## 2026-05-05 — Phase B planning + repo cleanup
+
+- Yaasameen's Action Alerts view (PR #8) and Opportunity Brief detail view (PR #9) merged
+- Architecture review: Yaasameen's V2 agent design adopted (coordinator → N signal_agents → execution_agent)
+- Director requirement: NYC scope narrowing + Phase C autonomous execution (future sprint)
+- Yaasameen's planned backend agent files (signal_agent, coordinator, etc.) not yet pushed — absorbed into Beatrice's scope
+- Root .gitignore created and committed
+- All docs reset to Day 7 reality
+
+---
+
+## 2026-05-02 — Day 5 (Saturday): Architecture Pivot Begins
+
+**Status:** Phase A complete and all 11 tasks merged to main. Saturday pivot to Strands is in progress. Demo ZIPs produce ranked digest + opportunity brief. Frontend scaffold ready. Backend verification: 125 passing tests.
+
+### Phase A Shipped
+All tasks merged:
+- PR #1: DevSecOps pipeline + project docs
+- PR #2: LLM abstraction layer (thin adapter + OpenRouter)
+- PR #3: MCP servers (FRED, BLS, RentCast) + Bronze cache
+- PR #4: Backend closeout (Silver, Gold, brief generator, demo runner)
+- PR #5: Frontend scaffold + shared schema
+
+### Saturday Pivot (In Progress)
+Replacing `src/llm/` thin adapter with Strands Agents SDK:
+- Delete: `src/llm/adapter.py`, `openrouter.py`, `anthropic.py`
+- Add: `src/agents/signal_agent.py` with Strands Agent wiring
+- Set: `LLM_PROVIDER=anthropic`, add `ANTHROPIC_API_KEY`
+- Test: Smoke test `python run_demo.py` to confirm Strands produces same output as OpenRouter Phase A
+
+### Next Steps
+1. Implement Strands pivot (Saturday AM/PM)
+2. Smoke test with same demo ZIPs as Phase A to confirm output matches
+3. Once pivot confirmed working, begin Phase B (Day 5 PM onwards):
+   - ATTOM, FHFA, Census ACS, HUD MCP servers
+   - Full 7-signal scoring via Strands
+   - Delivery pipeline (8am trigger, SendGrid, Slack)
+
+---
+
 ## 2026-05-01 — Day 4: Phase A Closed Out
 
 **Status:** Bronze, Silver, Gold, brief generation, and the Phase A demo runner are now implemented for the 3-source slice. Backend verification is green with 125 passing unit and integration tests.

@@ -29,6 +29,23 @@ def _silver(
     )
 
 
+def _scores(**overrides: object) -> dict[str, object]:
+    """Return a complete 7-signal score dict with sensible defaults."""
+    base: dict[str, object] = {
+        "delinquency_score": 45,
+        "employment_score": 30,
+        "rent_vacancy_score": 25,
+        "foreclosure_score": 20,
+        "price_score": 15,
+        "demographics_score": 10,
+        "hud_score": 10,
+        "overall_score": 32,
+        "rationale": "Moderate risk.",
+    }
+    base.update(overrides)
+    return base
+
+
 def _make_adapter(scores: dict[str, object]) -> MagicMock:
     adapter = MagicMock()
     adapter.complete.return_value = LLMResponse(
@@ -51,14 +68,9 @@ class TestScoreZip:
     def test_returns_gold_record(self) -> None:
         from src.pipeline.scorer import GoldRecord, score_zip
 
-        scores = {
-            "delinquency_score": 45,
-            "employment_score": 30,
-            "rent_vacancy_score": 25,
-            "overall_score": 35,
-            "rationale": "Moderate delinquency.",
-        }
-        adapter = _make_adapter(scores)
+        adapter = _make_adapter(
+            _scores(delinquency_score=45, overall_score=35, rationale="Moderate delinquency.")
+        )
         result = score_zip(_silver(), adapter)
 
         assert isinstance(result, GoldRecord)
@@ -70,15 +82,7 @@ class TestScoreZip:
     def test_calls_adapter_with_correct_tool(self) -> None:
         from src.pipeline.scorer import SCORE_SIGNALS_TOOL, score_zip
 
-        adapter = _make_adapter(
-            {
-                "delinquency_score": 50,
-                "employment_score": 40,
-                "rent_vacancy_score": 30,
-                "overall_score": 42,
-                "rationale": "ok",
-            }
-        )
+        adapter = _make_adapter(_scores())
         score_zip(_silver(), adapter)
 
         call_kwargs = adapter.complete.call_args[1]
@@ -89,13 +93,7 @@ class TestScoreZip:
         from src.pipeline.scorer import score_zip
 
         adapter = _make_adapter(
-            {
-                "delinquency_score": 61,
-                "employment_score": 55,
-                "rent_vacancy_score": 40,
-                "overall_score": 56,
-                "rationale": "Uses real tool_calls payload.",
-            }
+            _scores(overall_score=56, rationale="Uses real tool_calls payload.")
         )
         result = score_zip(_silver(), adapter)
         assert result.overall_score == 56
@@ -103,15 +101,7 @@ class TestScoreZip:
     def test_silver_fields_included_in_user_message(self) -> None:
         from src.pipeline.scorer import score_zip
 
-        adapter = _make_adapter(
-            {
-                "delinquency_score": 50,
-                "employment_score": 40,
-                "rent_vacancy_score": 30,
-                "overall_score": 42,
-                "rationale": "ok",
-            }
-        )
+        adapter = _make_adapter(_scores())
         record = _silver(zip_code="90210", delinquency_rate=3.8)
         score_zip(record, adapter)
 
@@ -140,14 +130,9 @@ class TestScoreZip:
         import pytest
         from src.pipeline.scorer import score_zip
 
-        adapter = _make_adapter(
-            {
-                "delinquency_score": 50,
-                "employment_score": 40,
-                "rent_vacancy_score": 30,
-                "rationale": "missing overall score",
-            }
-        )
+        # Omit overall_score — the parser should raise on whichever required field is missing.
+        partial = {k: v for k, v in _scores().items() if k != "overall_score"}
+        adapter = _make_adapter(partial)
         with pytest.raises(RuntimeError, match="overall_score"):
             score_zip(_silver(), adapter)
 

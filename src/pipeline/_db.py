@@ -15,16 +15,20 @@ def _get_conn() -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS silver_signals (
-            zip_code                TEXT    PRIMARY KEY,
-            delinquency_rate        REAL,
-            delinquency_date        TEXT,
-            unemployment_rate       REAL,
-            unemployment_mom_change REAL,
-            average_rent            REAL,
-            median_rent             REAL,
-            rent_change_pct         REAL,
-            vacancy_rate            REAL,
-            normalized_at           TEXT    NOT NULL DEFAULT (datetime('now'))
+            zip_code                 TEXT    PRIMARY KEY,
+            delinquency_rate         REAL,
+            delinquency_date         TEXT,
+            unemployment_rate        REAL,
+            unemployment_mom_change  REAL,
+            average_rent             REAL,
+            median_rent              REAL,
+            rent_change_pct          REAL,
+            vacancy_rate             REAL,
+            foreclosure_count        INTEGER,
+            price_index_change       REAL,
+            median_household_income  REAL,
+            hud_vacancy_rate         REAL,
+            normalized_at            TEXT    NOT NULL DEFAULT (datetime('now'))
         )
     """)
     conn.execute("""
@@ -33,6 +37,10 @@ def _get_conn() -> sqlite3.Connection:
             delinquency_score   INTEGER NOT NULL,
             employment_score    INTEGER NOT NULL,
             rent_vacancy_score  INTEGER NOT NULL,
+            foreclosure_score   INTEGER NOT NULL DEFAULT 0,
+            price_score         INTEGER NOT NULL DEFAULT 0,
+            demographics_score  INTEGER NOT NULL DEFAULT 0,
+            hud_score           INTEGER NOT NULL DEFAULT 0,
             overall_score       INTEGER NOT NULL,
             rationale           TEXT    NOT NULL,
             rank                INTEGER NOT NULL DEFAULT 0,
@@ -54,6 +62,10 @@ def silver_upsert(
     median_rent: float | None,
     rent_change_pct: float | None,
     vacancy_rate: float | None,
+    foreclosure_count: int | None = None,
+    price_index_change: float | None = None,
+    median_household_income: float | None = None,
+    hud_vacancy_rate: float | None = None,
 ) -> None:
     conn = _get_conn()
     try:
@@ -62,8 +74,10 @@ def silver_upsert(
             INSERT INTO silver_signals (
                 zip_code, delinquency_rate, delinquency_date,
                 unemployment_rate, unemployment_mom_change,
-                average_rent, median_rent, rent_change_pct, vacancy_rate
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                average_rent, median_rent, rent_change_pct, vacancy_rate,
+                foreclosure_count, price_index_change,
+                median_household_income, hud_vacancy_rate
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(zip_code) DO UPDATE SET
                 delinquency_rate        = excluded.delinquency_rate,
                 delinquency_date        = excluded.delinquency_date,
@@ -73,6 +87,10 @@ def silver_upsert(
                 median_rent             = excluded.median_rent,
                 rent_change_pct         = excluded.rent_change_pct,
                 vacancy_rate            = excluded.vacancy_rate,
+                foreclosure_count       = excluded.foreclosure_count,
+                price_index_change      = excluded.price_index_change,
+                median_household_income = excluded.median_household_income,
+                hud_vacancy_rate        = excluded.hud_vacancy_rate,
                 normalized_at           = datetime('now')
             """,
             (
@@ -85,6 +103,10 @@ def silver_upsert(
                 median_rent,
                 rent_change_pct,
                 vacancy_rate,
+                foreclosure_count,
+                price_index_change,
+                median_household_income,
+                hud_vacancy_rate,
             ),
         )
         conn.commit()
@@ -109,6 +131,10 @@ def gold_upsert(
     overall_score: int,
     rationale: str,
     rank: int,
+    foreclosure_score: int = 0,
+    price_score: int = 0,
+    demographics_score: int = 0,
+    hud_score: int = 0,
 ) -> None:
     conn = _get_conn()
     try:
@@ -116,12 +142,17 @@ def gold_upsert(
             """
             INSERT INTO gold_digest (
                 zip_code, delinquency_score, employment_score,
-                rent_vacancy_score, overall_score, rationale, rank
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                rent_vacancy_score, foreclosure_score, price_score,
+                demographics_score, hud_score, overall_score, rationale, rank
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(zip_code) DO UPDATE SET
                 delinquency_score   = excluded.delinquency_score,
                 employment_score    = excluded.employment_score,
                 rent_vacancy_score  = excluded.rent_vacancy_score,
+                foreclosure_score   = excluded.foreclosure_score,
+                price_score         = excluded.price_score,
+                demographics_score  = excluded.demographics_score,
+                hud_score           = excluded.hud_score,
                 overall_score       = excluded.overall_score,
                 rationale           = excluded.rationale,
                 rank                = excluded.rank,
@@ -132,6 +163,10 @@ def gold_upsert(
                 delinquency_score,
                 employment_score,
                 rent_vacancy_score,
+                foreclosure_score,
+                price_score,
+                demographics_score,
+                hud_score,
                 overall_score,
                 rationale,
                 rank,

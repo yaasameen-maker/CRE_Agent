@@ -2,7 +2,7 @@
 
 AI tool that ingests public commercial real estate data, scores distress signals, and delivers a ranked digest before 8am daily.
 
-**Status:** Sprint active — Phase A complete, Phase B pending Strands pivot (2026-04-28 to 2026-05-06) | **Today:** Day 4 of 8 (2026-05-01)
+**Status:** Sprint active — Phase A complete and merged (PRs #1-5, #8, #9), Phase B in progress | **Today:** Day 7 of 8 (2026-05-05)
 
 ---
 
@@ -17,13 +17,12 @@ Pulls data from 7 public sources (FRED, ATTOM, RentCast, BLS, FHFA, Census ACS, 
 
 ## Architecture
 
-Bronze (raw API cache) → Silver (ZIP-normalized, 30-day window) → Gold (scored, ranked) → LLM → Delivery
+Bronze (raw API cache) → Silver (ZIP-normalized, 30-day window) → Gold (scored, ranked) → Strands Agent Layer → Delivery
 
 Each data source is wrapped in an MCP server (`src/mcp/`). Claude never calls external APIs directly — it calls registered tools. Every API response is cached to SQLite on first fetch.
 
-**Phase A (completed 2026-05-01):** Thin adapter + OpenRouter — pipeline, digest, brief, and demo runner are in place.  
-**Saturday 2026-05-02:** Thin adapter replaced with Strands Agents SDK when Claude API key arrives.  
-**Phase B (2026-05-02–2026-05-06):** Full Strands agentic loop, all 7 sources, delivery, frontend integrated.
+**Phase A (completed 2026-05-01, merged to main):** Thin adapter + OpenRouter — pipeline, digest, brief, and demo runner are in place.
+**Phase B (in progress, Day 7 of 8):** Strands agent layer (`src/agents/`) replaces the thin adapter. Coordinator/subagent design: one `signal_agent` per ZIP runs in parallel, `execution_agent` classifies (Model/Monitor/Ignore) and dispatches delivery. NYC scope with `SCOPE_NYC_ONLY` env toggle.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full system diagram and design decisions.
 
@@ -31,8 +30,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full system diagram and design de
 
 | Person | Role |
 |--------|------|
-| Beatrice | Backend: pipeline, MCP servers, scoring, delivery |
-| Yaasameen | Frontend: dashboard, digest list, brief detail view |
+| Beatrice | Backend: pipeline, MCP servers, scoring, delivery, Strands agent layer |
+| Yaasameen | Frontend: dashboard, digest list, brief detail view — Action Alerts (PR #8) and Opportunity Brief detail view (PR #9) complete |
 
 ## Quick Start
 
@@ -43,13 +42,14 @@ pip install -r requirements-dev.txt
 
 # Set up environment
 cp .env.example .env
-# Add OPENROUTER_API_KEY (Phase A) or ANTHROPIC_API_KEY (Phase B)
+# Phase A demo: add OPENROUTER_API_KEY, set LLM_PROVIDER=openrouter
+# Phase B (Strands): add ANTHROPIC_API_KEY, set LLM_PROVIDER=anthropic
 
-# Run demo (Phase A)
+# Run demo (Phase A — OpenRouter)
 python run_demo.py --zips 10001,60601,90210
 ```
 
-Supported demo ZIPs are currently `10001`, `33101`, `60601`, and `90210`.
+Phase A supported demo ZIPs: `10001`, `33101`, `60601`, `90210`. Phase B will expand to full NYC ZIP coverage via `src/pipeline/config.py`.
 
 ## Development
 
@@ -92,9 +92,18 @@ FRED · ATTOM · RentCast · BLS · Census ACS · FHFA · HUD
 
 All responses cached in Bronze layer on first fetch. Rate-limited sources (RentCast: 50 calls/month) are never called twice for the same data.
 
-## Current Demo Status
+## Current Phase Status
 
-- Bronze, Silver, and Gold layers are implemented for the 3-source Phase A slice
-- Opportunity brief generation is implemented for the top-ranked ZIP
-- `run_demo.py` orchestrates Bronze → Silver → Gold → Brief for supported demo ZIPs
-- Backend verification currently stands at `125` passing tests across unit and integration coverage
+**Phase A: Complete and merged to main (PRs #1-5, #8, #9)**
+- Bronze, Silver, and Gold layers fully implemented for the 3-source slice (FRED, BLS, RentCast)
+- Opportunity brief generation with Markdown rendering implemented
+- `run_demo.py` orchestrates Bronze → Silver → Gold → Brief for supported demo ZIPs (`10001`, `33101`, `60601`, `90210`)
+- Backend verification: **124 passing tests** across unit and integration coverage
+- Frontend complete: scaffold, routing, layout, shared JSON schema, Action Alerts view, Opportunity Brief detail view
+
+**Phase B: In progress (Day 7 of 8)**
+- `src/agents/` not yet built — Block 1 (Strands agent layer) is the current gating task
+- Coordinator/subagent pattern: `coordinator.py` → N parallel `signal_agent.py` → `execution_agent.py`
+- NYC scope: `SCOPE_NYC_ONLY` env toggle in `src/pipeline/config.py`
+- Remaining 4 MCP servers: ATTOM, FHFA, Census ACS, HUD
+- Delivery pipeline: APScheduler (8am), SendGrid email, Slack digest
