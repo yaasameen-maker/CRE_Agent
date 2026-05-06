@@ -27,7 +27,7 @@ All Phase A tasks shipped and merged to main. Final status:
 
 ---
 
-## Phase B: Full MVP (Days 5–8, 2026-05-02 to 2026-05-06)
+## Phase B: Full MVP (Days 5–8, 2026-05-02 to 2026-05-06) ✅ COMPLETE
 
 ### Block 0 — Documentation Reset ✅ COMPLETE
 - [x] ROADMAP.md — updated checklist
@@ -36,52 +36,86 @@ All Phase A tasks shipped and merged to main. Final status:
 - [x] README.md — current state and quick start
 - [x] NOTES.md + KNOWLEDGE.md — session entries
 
-### Block 1 — Strands Agent Layer (gates everything)
-- [ ] `src/agents/signal_agent.py` — Strands Agent, one ZIP, forced tool use scoring
-- [ ] `src/agents/coordinator.py` — asyncio.gather N signal_agent calls in parallel
-- [ ] `src/agents/execution_agent.py` — Model/Monitor/Ignore classification + delivery dispatch
-- [ ] `src/agents/monitor.py` — APScheduler 8am CronTrigger(hour=8, ET)
-- [ ] Add ANTHROPIC_API_KEY to .env, set LLM_PROVIDER=anthropic
-- [ ] Smoke test run_demo.py end-to-end with Anthropic key
-- [ ] All 124 existing tests pass after pivot
+### Block 1 — Strands Agent Layer ✅ COMPLETE
+- [x] `src/agents/signal_agent.py` — Strands Agent, one ZIP, forced tool use scoring
+- [x] `src/agents/coordinator.py` — asyncio.gather N signal_agent calls in parallel
+- [x] `src/agents/execution_agent.py` — Model/Monitor/Ignore classification + delivery dispatch
+- [x] `src/agents/monitor.py` — APScheduler 8am CronTrigger(hour=8, ET)
+- [x] Add ANTHROPIC_API_KEY to .env, set LLM_PROVIDER=anthropic
+- [x] Smoke test run_demo.py end-to-end with Anthropic key
+- [x] All 124 existing tests pass after pivot
 
-### Block 2 — Pipeline Extensions
-- [ ] `src/pipeline/action.py` — ActionClassifier + ActionLabel enum (MODEL/MONITOR/IGNORE)
-- [ ] `src/pipeline/delivery.py` — SendGrid email digest + Slack post_message
+### Block 2 — Pipeline Extensions ✅ COMPLETE
+- [x] `src/pipeline/action.py` — ActionClassifier + ActionLabel enum (MODEL/MONITOR/IGNORE)
+- [x] `src/pipeline/delivery.py` — SendGrid email digest + Slack post_message
 
-### Block 3 — 4 New MCP Servers
-- [ ] `src/mcp/attom.py` — get_foreclosure_filings, get_deed_transfers (HIGH)
-- [ ] `src/mcp/fhfa.py` — get_price_index (MEDIUM)
-- [ ] `src/mcp/census.py` — get_demographics (MEDIUM)
-- [ ] `src/mcp/hud.py` — get_hud_vacancy (MEDIUM)
-- [ ] Unit tests for all 4
+### Block 3 — 4 New MCP Servers ✅ COMPLETE
+- [x] `src/mcp/attom.py` — get_foreclosure_filings, get_deed_transfers
+- [x] `src/mcp/fhfa.py` — get_price_index
+- [x] `src/mcp/census.py` — get_demographics
+- [x] `src/mcp/hud.py` — get_hud_vacancy
+- [x] Unit tests for all 4
 
-### Block 4 — 7-Signal Expansion
-- [ ] `data/migrations/003_silver_gold_7signal.sql`
-- [ ] Expand SilverRecord (4 new nullable fields) in normalizer.py
-- [ ] Update scoring prompt for 7 signals in prompts/scoring.py
-- [ ] Add new MCP tools to coordinator.py
-- [ ] Update affected tests
+### Block 4 — 7-Signal Expansion ✅ COMPLETE
+- [x] `data/migrations/003_silver_gold_7signal.sql`
+- [x] Expand SilverRecord (4 new nullable fields) in normalizer.py
+- [x] Update scoring prompt for 7 signals in prompts/scoring.py
+- [x] Add new MCP tools to coordinator.py
+- [x] Update affected tests
 
-### Block 5 — NYC Scope
-- [ ] `src/pipeline/config.py` — NYC_ZIP_CODES frozenset, SCOPE_NYC_ONLY env toggle
-- [ ] Scope filter in coordinator.py
-- [ ] NYC demo ZIPs in demo.py
+### Block 5 — NYC Scope ✅ COMPLETE
+- [x] `src/pipeline/config.py` — NYC_ZIP_CODES frozenset, SCOPE_NYC_ONLY env toggle
+- [x] Scope filter in coordinator.py
+- [x] NYC demo ZIPs in demo.py
 
-### Block 6 — Cleanup PR (after smoke test)
-- [ ] Delete `src/llm/openrouter.py`, `src/llm/adapter.py`, `src/llm/__init__.py`
-- [ ] Delete `tests/unit/llm/` directory
-- [ ] Remove openrouter from requirements.txt
+### Block 6 — Cleanup PR ✅ COMPLETE
+- [x] Delete `src/llm/openrouter.py`
+- [x] Remove OpenRouter adapter from src/llm/
+- [x] Remove openrouter from requirements.txt
 
-### Block 7 — Integration & Demo
-- [ ] `tests/integration/test_full_pipeline.py` — full 7-source pipeline test
-- [ ] All tests green before PR
+### Block 7 — Integration & Demo ✅ COMPLETE
+- [x] `tests/integration/test_full_pipeline.py` — full 7-source pipeline test
+- [x] All 212 tests green
+
+---
+
+## Phase C: Go-Live Handoff — Yaasameen `[Yaasameen]`
+
+Backend is complete and merged. These tasks unblock live operation and frontend integration.
+
+### Environment Setup (prerequisite for everything below)
+- [ ] Add `ANTHROPIC_API_KEY` to `.env` (key already issued)
+- [ ] Add `ATTOM_API_KEY`, `FHFA_API_KEY`, `CENSUS_API_KEY`, `HUD_API_KEY` to `.env`
+- [ ] Add `SENDGRID_API_KEY` and `SLACK_BOT_TOKEN` to `.env`
+- [ ] Set `LLM_PROVIDER=anthropic` in `.env`
+- [ ] Set `SCOPE_NYC_ONLY=true` in `.env` (already the default)
+
+### Smoke Test
+- [ ] Run `pytest tests/unit/ tests/integration/` — must stay green
+- [ ] Run coordinator against 2–3 NYC ZIPs to confirm live scoring produces GoldRecords
+
+### Frontend Integration
+- [ ] Wire API responses to the ranked digest view (uses `gold_get_digest()` output schema)
+- [ ] Wire opportunity brief to the brief display component
+- [ ] Wire Action Alerts (MODEL / MONITOR / IGNORE labels from `ExecutionAgent`)
+- [ ] Confirm JSON schema in `src/pipeline/scorer.py::GoldRecord` matches frontend contract
+
+### Delivery Wiring
+- [ ] Confirm SendGrid sender domain is verified
+- [ ] Confirm Slack bot is installed in the target channel with `chat:write` scope
+- [ ] Send one test email via `send_email_digest()` and confirm receipt
+- [ ] Post one test Slack message via `post_slack_message()` and confirm delivery
+
+### Scheduler Activation
+- [ ] Review `src/agents/monitor.py` — 8am ET CronTrigger, calls `run_coordinator()` then `ExecutionAgent().run()`
+- [ ] Decide deployment target (local cron, Railway, Render, etc.) and deploy `monitor.py`
+- [ ] Confirm first scheduled run fires and produces Gold records
 
 ---
 
 ## Post-MVP (Out of Sprint Scope)
 
-- [ ] Phase C: Autonomous acquisition pipeline (NYC commercial properties)
+- [ ] Phase D: Autonomous acquisition pipeline (NYC commercial properties)
 - [ ] Draft market memo generator
 - [ ] Watchlist / custom ZIP alerts
 - [ ] AI valuation model (AVM)
