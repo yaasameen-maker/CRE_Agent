@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import dataclasses
 
-from src.llm import get_adapter
 from src.llm.adapter import LLMAdapter
 from src.mcp.bls import get_employment_trend
 from src.mcp.fred import get_delinquency_rate
@@ -131,7 +130,12 @@ def run_demo_for_zips(
     adapter: LLMAdapter | None = None,
 ) -> DemoRunResult:
     configs = resolve_demo_zips(zip_codes)
-    llm_adapter = adapter if adapter is not None else get_adapter()
+    if adapter is None:
+        raise ValueError(
+            "No LLM adapter provided. Phase B uses run_coordinator() from "
+            "src.agents.coordinator — pass an explicit adapter or use the agent layer."
+        )
+    llm_adapter = adapter
 
     silver_by_zip: dict[str, SilverRecord] = {}
     gold_records: list[GoldRecord] = []

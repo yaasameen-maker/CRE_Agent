@@ -1,24 +1,11 @@
-"""LLM abstraction layer — factory and public exports."""
+"""LLM abstraction layer — Phase A types only.
+
+OpenRouter support was removed in the Phase B pivot.  Use
+``src.agents.coordinator.run_coordinator`` for all Phase B scoring.
+"""
 
 from __future__ import annotations
 
-import os
-
 from src.llm.adapter import LLMAdapter, LLMResponse
-from src.llm.openrouter import OpenRouterAdapter
 
-__all__ = ["LLMAdapter", "LLMResponse", "get_adapter"]
-
-
-def get_adapter() -> LLMAdapter:
-    """Return an LLMAdapter for the configured provider.
-
-    Controlled by the ``LLM_PROVIDER`` env var (default: ``"openrouter"``).
-
-    Raises:
-        ValueError: If ``LLM_PROVIDER`` is set to an unrecognised value.
-    """
-    provider = os.getenv("LLM_PROVIDER", "openrouter")
-    if provider == "openrouter":
-        return OpenRouterAdapter()
-    raise ValueError(f"Unknown LLM_PROVIDER: {provider!r}. Valid values: 'openrouter'")
+__all__ = ["LLMAdapter", "LLMResponse"]

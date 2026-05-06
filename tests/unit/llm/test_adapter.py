@@ -2,13 +2,8 @@
 
 from __future__ import annotations
 
-import os
-from unittest.mock import patch
-
 import pytest
-from src.llm import get_adapter
 from src.llm.adapter import LLMAdapter, LLMResponse
-from src.llm.openrouter import OpenRouterAdapter
 
 
 class TestLLMResponse:
@@ -105,30 +100,3 @@ class TestLLMAdapterABC:
 
         result = Concrete().complete(messages=[], system="test")
         assert result.content == "ok"
-
-
-class TestGetAdapter:
-    def test_default_returns_openrouter(self) -> None:
-        clean_env = {k: v for k, v in os.environ.items() if k != "LLM_PROVIDER"}
-        with patch.dict(os.environ, clean_env, clear=True):
-            env_dict = {"OPENROUTER_API_KEY": "test-key"}  # pragma: allowlist secret
-            with patch.dict(os.environ, env_dict):
-                assert isinstance(get_adapter(), OpenRouterAdapter)
-
-    def test_openrouter_explicit_returns_openrouter(self) -> None:
-        env_dict = {
-            "LLM_PROVIDER": "openrouter",
-            "OPENROUTER_API_KEY": "test-key",  # pragma: allowlist secret
-        }
-        with patch.dict(os.environ, env_dict):
-            assert isinstance(get_adapter(), OpenRouterAdapter)
-
-    def test_unknown_provider_raises_value_error(self) -> None:
-        with patch.dict(os.environ, {"LLM_PROVIDER": "bad_value"}):
-            with pytest.raises(ValueError, match="bad_value"):
-                get_adapter()
-
-    def test_error_message_lists_valid_values(self) -> None:
-        with patch.dict(os.environ, {"LLM_PROVIDER": "bad_value"}):
-            with pytest.raises(ValueError, match="openrouter"):
-                get_adapter()
