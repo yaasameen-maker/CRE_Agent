@@ -49,17 +49,32 @@ DEMO_ZIP_CONFIGS: list[ZipConfig] = [
     {
         "zip_code": "10001",
         "metro_code": "LAUMT364002000000003",  # NYC metro unemployment
-        "fred_series_id": "DRSREACBS",  # Real estate loan delinquency
+        "fred_series_id": "DRSREACBS",
+        "census_tract": "36061010900",  # Manhattan tract near Penn Station
     },
     {
-        "zip_code": "33101",
-        "metro_code": "LAUMT124002000000003",  # Miami metro unemployment
+        "zip_code": "10014",
+        "metro_code": "LAUMT364002000000003",
         "fred_series_id": "DRSREACBS",
+        "census_tract": "36061011300",  # West Village
     },
     {
-        "zip_code": "60601",
-        "metro_code": "LAUMT171610000000003",  # Chicago metro unemployment
+        "zip_code": "10036",
+        "metro_code": "LAUMT364002000000003",
         "fred_series_id": "DRSREACBS",
+        "census_tract": "36061010300",  # Midtown West / Theater District
+    },
+    {
+        "zip_code": "10128",
+        "metro_code": "LAUMT364002000000003",
+        "fred_series_id": "DRSREACBS",
+        "census_tract": "36061014100",  # Upper East Side
+    },
+    {
+        "zip_code": "11201",
+        "metro_code": "LAUMT364002000000003",
+        "fred_series_id": "DRSREACBS",
+        "census_tract": "36047000100",  # Brooklyn Heights
     },
 ]
 

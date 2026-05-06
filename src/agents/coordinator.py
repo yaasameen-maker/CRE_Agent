@@ -12,6 +12,7 @@ import logging
 
 from src.agents.signal_agent import ZipConfig, score_zip_for_coordinator
 from src.pipeline._db import gold_upsert
+from src.pipeline.config import SCOPE_NYC_ONLY, is_nyc_zip
 from src.pipeline.scorer import GoldRecord, build_digest
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,17 @@ async def run_coordinator(zip_configs: list[ZipConfig]) -> list[GoldRecord]:
     """
     if not zip_configs:
         return []
+
+    # Apply NYC scope filter if enabled.
+    if SCOPE_NYC_ONLY:
+        filtered = [cfg for cfg in zip_configs if is_nyc_zip(cfg["zip_code"])]
+        skipped = len(zip_configs) - len(filtered)
+        if skipped:
+            logger.info("coordinator: skipped %d non-NYC ZIP(s) (SCOPE_NYC_ONLY=true)", skipped)
+        zip_configs = filtered
+        if not zip_configs:
+            logger.warning("coordinator: no NYC ZIP codes remain after scope filter")
+            return []
 
     # Fan-out: score every ZIP concurrently.
     results = await asyncio.gather(

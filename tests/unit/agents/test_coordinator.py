@@ -13,8 +13,8 @@ from src.pipeline.scorer import GoldRecord
 
 _ZIP_CONFIGS = [
     {"zip_code": "10001", "metro_code": "METRO_A", "fred_series_id": "FRED_A"},
-    {"zip_code": "33101", "metro_code": "METRO_B", "fred_series_id": "FRED_B"},
-    {"zip_code": "60601", "metro_code": "METRO_C", "fred_series_id": "FRED_C"},
+    {"zip_code": "10014", "metro_code": "METRO_B", "fred_series_id": "FRED_B"},
+    {"zip_code": "11201", "metro_code": "METRO_C", "fred_series_id": "FRED_C"},
 ]
 
 
@@ -49,7 +49,7 @@ class TestRunCoordinatorSuccess:
         from src.agents.coordinator import run_coordinator
 
         def fake_score(cfg: dict) -> GoldRecord:
-            scores = {"10001": 45, "33101": 75, "60601": 30}
+            scores = {"10001": 45, "10014": 75, "11201": 30}
             return _gold(cfg["zip_code"], scores[cfg["zip_code"]])
 
         with (
@@ -65,11 +65,11 @@ class TestRunCoordinatorSuccess:
         assert len(result) == 3
 
         # Ranked descending by overall_score.
-        assert result[0].zip_code == "33101"
+        assert result[0].zip_code == "10014"
         assert result[0].rank == 1
         assert result[1].zip_code == "10001"
         assert result[1].rank == 2
-        assert result[2].zip_code == "60601"
+        assert result[2].zip_code == "11201"
         assert result[2].rank == 3
 
         # gold_upsert called once per record.
@@ -100,7 +100,7 @@ class TestRunCoordinatorFaultIsolation:
         from src.agents.coordinator import run_coordinator
 
         def fake_score(cfg: dict) -> GoldRecord | None:
-            if cfg["zip_code"] == "33101":
+            if cfg["zip_code"] == "10014":
                 return None  # data unavailable
             return _gold(cfg["zip_code"], 50)
 
@@ -112,7 +112,7 @@ class TestRunCoordinatorFaultIsolation:
 
         # Only the two non-None records are returned.
         zip_codes = {r.zip_code for r in result}
-        assert "33101" not in zip_codes
+        assert "10014" not in zip_codes
         assert len(result) == 2
 
     def test_exception_in_one_zip_does_not_crash_run(self) -> None:
@@ -120,7 +120,7 @@ class TestRunCoordinatorFaultIsolation:
         from src.agents.coordinator import run_coordinator
 
         def fake_score(cfg: dict) -> GoldRecord:
-            if cfg["zip_code"] == "60601":
+            if cfg["zip_code"] == "11201":
                 raise RuntimeError("network timeout")
             return _gold(cfg["zip_code"], 40)
 
@@ -131,7 +131,7 @@ class TestRunCoordinatorFaultIsolation:
             result = asyncio.run(run_coordinator(_ZIP_CONFIGS))
 
         zip_codes = {r.zip_code for r in result}
-        assert "60601" not in zip_codes
+        assert "11201" not in zip_codes
         assert len(result) == 2
 
     def test_all_none_returns_empty(self) -> None:
