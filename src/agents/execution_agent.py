@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-from enum import Enum
+from enum import StrEnum
 
 from src.pipeline._db import gold_get_digest
 from src.pipeline.scorer import GoldRecord
@@ -35,7 +35,7 @@ _THRESHOLD_MONITOR = 40
 # ---------------------------------------------------------------------------
 
 
-class ActionClass(str, Enum):
+class ActionClass(StrEnum):
     MODEL = "MODEL"
     MONITOR = "MONITOR"
     IGNORE = "IGNORE"
