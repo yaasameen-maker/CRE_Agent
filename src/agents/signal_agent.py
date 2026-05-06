@@ -206,6 +206,22 @@ class StrandsAdapter:
                     "completion_tokens": int(u.get("outputTokens", 0)),
                 }
 
+        # Log token usage per call so operator can track spend against budget.
+        prompt_t = usage.get("prompt_tokens", 0)
+        completion_t = usage.get("completion_tokens", 0)
+        model_id = getattr(self._model, "model_id", "unknown")
+        if "haiku" in model_id:
+            cost = (prompt_t * 0.8 + completion_t * 4) / 1_000_000
+        else:
+            cost = (prompt_t * 3 + completion_t * 15) / 1_000_000
+        logger.info(
+            "API call [%s]: %d input + %d output tokens (est. cost $%.4f)",
+            model_id,
+            prompt_t,
+            completion_t,
+            cost,
+        )
+
         # Return a duck-typed response object compatible with score_zip / generate_brief.
         return _AdapterResponse(
             content="\n".join(content_text) if content_text else None,
@@ -232,23 +248,45 @@ class _AdapterResponse:
 
 
 # ---------------------------------------------------------------------------
-# Module-level Strands model singleton (lazy-initialised).
+# Model singletons — lazy-initialised, one per task type.
+# Haiku 4.5  → ZIP scoring   (structured rule-following, forced tool use)
+# Sonnet 4.6 → Brief writing (nuanced analyst prose, synthesis across signals)
+# Both use the same ANTHROPIC_API_KEY.
 # ---------------------------------------------------------------------------
 
-_strands_model: Any = None
+_haiku_model: Any = None
+_sonnet_model: Any = None
 
 
-def _get_strands_model() -> Any:
-    """Return the module-level AnthropicModel singleton, creating it if needed."""
-    global _strands_model  # noqa: PLW0603
-    if _strands_model is None:
+def _get_haiku_model() -> Any:
+    """Lazy singleton for ZIP scoring — fast, cheap, accurate on rubric tasks."""
+    global _haiku_model  # noqa: PLW0603
+    if _haiku_model is None:
         from strands.models.anthropic import AnthropicModel
 
-        _strands_model = AnthropicModel(
-            model_id="claude-sonnet-4-5",
+        _haiku_model = AnthropicModel(
+            model_id="claude-haiku-4-5-20251001",
             max_tokens=1024,
         )
-    return _strands_model
+    return _haiku_model
+
+
+def _get_sonnet_model() -> Any:
+    """Lazy singleton for brief generation — higher quality analytical writing."""
+    global _sonnet_model  # noqa: PLW0603
+    if _sonnet_model is None:
+        from strands.models.anthropic import AnthropicModel
+
+        _sonnet_model = AnthropicModel(
+            model_id="claude-sonnet-4-6",
+            max_tokens=2048,
+        )
+    return _sonnet_model
+
+
+def get_sonnet_adapter() -> StrandsAdapter:
+    """Return a StrandsAdapter wrapping the Sonnet model for brief generation."""
+    return StrandsAdapter(_get_sonnet_model())
 
 
 # ---------------------------------------------------------------------------
@@ -324,9 +362,9 @@ def score_zip_for_coordinator(zip_config: ZipConfig) -> GoldRecord | None:
         logger.warning("ZIP %s: Silver normalization returned None (missing/stale data)", zip_code)
         return None
 
-    # Step 3: Score via Strands AnthropicModel.
+    # Step 3: Score via Haiku (structured rule-following, no prose needed).
     try:
-        model = _get_strands_model()
+        model = _get_haiku_model()
         adapter = StrandsAdapter(model)
         return score_zip(silver, adapter)  # type: ignore[arg-type]
     except Exception:

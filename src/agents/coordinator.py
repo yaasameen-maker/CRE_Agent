@@ -86,5 +86,9 @@ async def run_coordinator(zip_configs: list[ZipConfig]) -> list[GoldRecord]:
             rank=record.rank,
         )
 
-    logger.info("coordinator: scored and ranked %d ZIP codes", len(ranked))
+    logger.info(
+        "coordinator: scored and ranked %d ZIP codes — run complete. "
+        "Check per-call token logs above for spend breakdown.",
+        len(ranked),
+    )
     return ranked
