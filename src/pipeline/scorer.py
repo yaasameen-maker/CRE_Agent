@@ -32,6 +32,30 @@ SCORE_SIGNALS_TOOL: dict[str, object] = {
                 "minimum": 0,
                 "maximum": 100,
             },
+            "foreclosure_score": {
+                "type": "integer",
+                "description": "Foreclosure filing distress score 0-100.",
+                "minimum": 0,
+                "maximum": 100,
+            },
+            "price_score": {
+                "type": "integer",
+                "description": "House price index trend distress score 0-100.",
+                "minimum": 0,
+                "maximum": 100,
+            },
+            "demographics_score": {
+                "type": "integer",
+                "description": "Demographic / income distress score 0-100.",
+                "minimum": 0,
+                "maximum": 100,
+            },
+            "hud_score": {
+                "type": "integer",
+                "description": "HUD commercial vacancy distress score 0-100.",
+                "minimum": 0,
+                "maximum": 100,
+            },
             "overall_score": {
                 "type": "integer",
                 "description": "Weighted overall distress score 0-100.",
@@ -47,6 +71,10 @@ SCORE_SIGNALS_TOOL: dict[str, object] = {
             "delinquency_score",
             "employment_score",
             "rent_vacancy_score",
+            "foreclosure_score",
+            "price_score",
+            "demographics_score",
+            "hud_score",
             "overall_score",
             "rationale",
         ],
@@ -63,6 +91,10 @@ class GoldRecord:
     overall_score: int
     rationale: str
     rank: int = 0
+    foreclosure_score: int = 0
+    price_score: int = 0
+    demographics_score: int = 0
+    hud_score: int = 0
 
 
 def _find_tool_input(
@@ -112,6 +144,10 @@ def _build_user_message(record: SilverRecord) -> str:
         f"Average rent: ${record.average_rent}, median rent: ${record.median_rent}\n"
         f"Rent change (30-day): {record.rent_change_pct}%\n"
         f"Vacancy rate: {record.vacancy_rate}%\n"
+        f"Foreclosure filings (90-day): {record.foreclosure_count}\n"
+        f"Price index QoQ change: {record.price_index_change}%\n"
+        f"Median household income: ${record.median_household_income}\n"
+        f"HUD commercial vacancy rate: {record.hud_vacancy_rate}\n"
         "\nScore this ZIP code using the score_signals tool."
     )
 
@@ -130,6 +166,10 @@ def score_zip(record: SilverRecord, adapter: LLMAdapter) -> GoldRecord:
         delinquency_score=_parse_score(scores, "delinquency_score"),
         employment_score=_parse_score(scores, "employment_score"),
         rent_vacancy_score=_parse_score(scores, "rent_vacancy_score"),
+        foreclosure_score=_parse_score(scores, "foreclosure_score"),
+        price_score=_parse_score(scores, "price_score"),
+        demographics_score=_parse_score(scores, "demographics_score"),
+        hud_score=_parse_score(scores, "hud_score"),
         overall_score=_parse_score(scores, "overall_score"),
         rationale=_parse_rationale(scores),
         rank=0,

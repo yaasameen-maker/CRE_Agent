@@ -13,8 +13,12 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
+from src.mcp.attom import _fetch_foreclosure_filings
 from src.mcp.bls import _fetch_employment_trend
+from src.mcp.census import _fetch_demographics
+from src.mcp.fhfa import _fetch_price_index
 from src.mcp.fred import _fetch_delinquency_rate
+from src.mcp.hud import _fetch_hud_vacancy
 from src.mcp.rentcast import _fetch_markets
 from src.pipeline.normalizer import SilverRecord, normalize_zip
 from src.pipeline.scorer import GoldRecord, score_zip
@@ -29,10 +33,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 # A typed dict describing one ZIP code's data-source coordinates.
-# Keys:
+# Keys (required):
 #   zip_code       – 5-digit ZIP string
 #   metro_code     – BLS LAUS series ID for the metro area
 #   fred_series_id – FRED series ID for delinquency rate
+# Keys (optional, for 7-signal scoring):
+#   census_tract   – 11-digit FIPS census tract code
 ZipConfig = dict[str, str]
 
 # ---------------------------------------------------------------------------
@@ -253,6 +259,8 @@ def score_zip_for_coordinator(zip_config: ZipConfig) -> GoldRecord | None:
     metro_code = zip_config["metro_code"]
     fred_series_id = zip_config["fred_series_id"]
 
+    census_tract = zip_config.get("census_tract")
+
     # Step 1: Populate Bronze via MCP tool fetch functions.
     try:
         _fetch_delinquency_rate(fred_series_id)
@@ -269,8 +277,34 @@ def score_zip_for_coordinator(zip_config: ZipConfig) -> GoldRecord | None:
     except Exception:
         logger.warning("ZIP %s: failed to fetch RentCast data", zip_code, exc_info=True)
 
+    try:
+        _fetch_foreclosure_filings(zip_code)
+    except Exception:
+        logger.warning("ZIP %s: failed to fetch ATTOM foreclosure data", zip_code, exc_info=True)
+
+    try:
+        _fetch_price_index(metro_code)
+    except Exception:
+        logger.warning("ZIP %s: failed to fetch FHFA price index", zip_code, exc_info=True)
+
+    if census_tract:
+        try:
+            _fetch_demographics(census_tract)
+        except Exception:
+            logger.warning("ZIP %s: failed to fetch Census demographics", zip_code, exc_info=True)
+
+    try:
+        _fetch_hud_vacancy(metro_code)
+    except Exception:
+        logger.warning("ZIP %s: failed to fetch HUD vacancy data", zip_code, exc_info=True)
+
     # Step 2: Normalize Silver.
-    silver: SilverRecord | None = normalize_zip(zip_code, metro_code, fred_series_id)
+    silver: SilverRecord | None = normalize_zip(
+        zip_code,
+        metro_code,
+        fred_series_id,
+        census_tract=census_tract,
+    )
     if silver is None:
         logger.warning("ZIP %s: Silver normalization returned None (missing/stale data)", zip_code)
         return None
