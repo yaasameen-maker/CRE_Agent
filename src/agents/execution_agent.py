@@ -137,7 +137,10 @@ class ExecutionAgent:
             r = classified.record
             cfg = _ZIP_CONFIG_INDEX.get(r.zip_code)
             if cfg is None:
-                logger.warning("ACTION=MODEL zip=%s: no ZipConfig found, skipping brief", r.zip_code)
+                logger.warning(
+                    "ACTION=MODEL zip=%s: no ZipConfig found, skipping brief",
+                    r.zip_code,
+                )
                 continue
             silver = normalize_zip(
                 r.zip_code,
@@ -146,10 +149,12 @@ class ExecutionAgent:
                 census_tract=cfg.get("census_tract"),
             )
             if silver is None:
-                logger.warning("ACTION=MODEL zip=%s: Silver record unavailable, skipping brief", r.zip_code)
+                logger.warning(  # split to stay under 100-char limit
+                    "ACTION=MODEL zip=%s: Silver record unavailable, skipping brief",
+                    r.zip_code,
+                )
                 continue
-            gold_for_brief = dataclasses.replace(r)
-            brief = generate_brief(silver, gold_for_brief, adapter)  # type: ignore[arg-type]
+            brief = generate_brief(silver, r, adapter)  # type: ignore[arg-type]
             logger.info(
                 "ACTION=MODEL zip=%s rank=%d score=%d | brief: %s",
                 r.zip_code,
