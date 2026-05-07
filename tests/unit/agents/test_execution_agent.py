@@ -194,3 +194,50 @@ class TestExecutionAgentMixed:
             result = ExecutionAgent().run()
 
         assert result.classified[0].action == ActionClass.MODEL
+
+
+class TestDispatchModelEdgeCases:
+    def test_unknown_zip_logs_warning_and_skips_brief(self, caplog) -> None:
+        """MODEL record with ZIP absent from _ZIP_CONFIG_INDEX logs a warning."""
+        import logging
+
+        rows = [_sqlite_row("99999", 80, rank=1)]  # 99999 is not in DEMO_ZIP_CONFIGS
+        with (
+            patch("src.agents.execution_agent.gold_get_digest", return_value=rows),
+            caplog.at_level(logging.WARNING, logger="src.agents.execution_agent"),
+        ):
+            result = ExecutionAgent().run()
+
+        assert result.model_count == 1
+        assert any("no ZipConfig found" in r.message for r in caplog.records)
+
+    def test_brief_generated_when_silver_available(self) -> None:
+        """MODEL dispatch calls generate_brief when normalize_zip returns a record."""
+        from unittest.mock import MagicMock
+
+        from src.pipeline.normalizer import SilverRecord
+
+        silver = SilverRecord(
+            zip_code="10001",
+            delinquency_rate=None,
+            delinquency_date=None,
+            unemployment_rate=None,
+            unemployment_mom_change=None,
+            average_rent=None,
+            median_rent=None,
+            rent_change_pct=None,
+            vacancy_rate=None,
+        )
+        mock_brief = MagicMock()
+        mock_brief.headline = "Strong distress signal"
+
+        rows = [_sqlite_row("10001", 80, rank=1)]
+        with (
+            patch("src.agents.execution_agent.gold_get_digest", return_value=rows),
+            patch("src.agents.execution_agent.normalize_zip", return_value=silver),
+            patch("src.agents.execution_agent.generate_brief", return_value=mock_brief),
+            patch("src.agents.execution_agent.get_sonnet_adapter", return_value=MagicMock()),
+        ):
+            result = ExecutionAgent().run()
+
+        assert result.model_count == 1
