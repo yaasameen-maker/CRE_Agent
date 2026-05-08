@@ -1,11 +1,12 @@
 {
-  "generated_at": "2026-04-28T08:00:00Z",
+  "generated_at": "2026-05-07T08:00:00Z",
   "run_id": "a1b2c3d4-0001-0000-0000-000000000001",
   "zips": [
     {
-      "zip": "33101",
-      "city": "Miami",
-      "state": "FL",
+      "zip": "10001",
+      "city": "New York",
+      "state": "NY",
+      "neighborhood": "Midtown",
       "distress_score": 87,
       "rank": 1,
       "action": "Model",
@@ -19,11 +20,29 @@
       "brief_id": "b1b2c3d4-0001-0000-0000-000000000001"
     },
     {
-      "zip": "60601",
-      "city": "Chicago",
-      "state": "IL",
-      "distress_score": 62,
+      "zip": "10036",
+      "city": "New York",
+      "state": "NY",
+      "neighborhood": "Times Square",
+      "distress_score": 74,
       "rank": 2,
+      "action": "Model",
+      "signals": {
+        "vacancy":      { "value": 7.8,  "change_30d": 5.2,  "flag": true  },
+        "rent":         { "value": -3.1, "change_30d": -3.1, "flag": true  },
+        "price_growth": { "value": 0.7,  "annualized": 0.7,  "flag": true  },
+        "employment":   { "value": -2.1, "change_30d": -2.1, "flag": true  },
+        "foreclosure":  { "count": 3,                        "flag": true  }
+      },
+      "brief_id": "b1b2c3d4-0002-0000-0000-000000000002"
+    },
+    {
+      "zip": "10014",
+      "city": "New York",
+      "state": "NY",
+      "neighborhood": "West Village",
+      "distress_score": 62,
+      "rank": 3,
       "action": "Monitor",
       "signals": {
         "vacancy":      { "value": 6.2,  "change_30d": 5.1,  "flag": true  },
@@ -32,14 +51,32 @@
         "employment":   { "value": -1.5, "change_30d": -1.5, "flag": false },
         "foreclosure":  { "count": 2,                        "flag": true  }
       },
-      "brief_id": "b1b2c3d4-0002-0000-0000-000000000002"
+      "brief_id": "b1b2c3d4-0003-0000-0000-000000000003"
     },
     {
-      "zip": "10001",
+      "zip": "10128",
       "city": "New York",
       "state": "NY",
+      "neighborhood": "Upper East Side",
+      "distress_score": 45,
+      "rank": 4,
+      "action": "Monitor",
+      "signals": {
+        "vacancy":      { "value": 5.3,  "change_30d": 4.1,  "flag": true  },
+        "rent":         { "value": -0.8, "change_30d": -0.8, "flag": false },
+        "price_growth": { "value": 2.1,  "annualized": 2.1,  "flag": false },
+        "employment":   { "value": -1.0, "change_30d": -1.0, "flag": false },
+        "foreclosure":  { "count": 1,                        "flag": false }
+      },
+      "brief_id": "b1b2c3d4-0004-0000-0000-000000000004"
+    },
+    {
+      "zip": "11201",
+      "city": "Brooklyn",
+      "state": "NY",
+      "neighborhood": "Brooklyn Heights",
       "distress_score": 28,
-      "rank": 3,
+      "rank": 5,
       "action": "Ignore",
       "signals": {
         "vacancy":      { "value": 3.4,  "change_30d": 1.2,  "flag": false },
@@ -48,7 +85,7 @@
         "employment":   { "value": -0.4, "change_30d": -0.4, "flag": false },
         "foreclosure":  { "count": 0,                        "flag": false }
       },
-      "brief_id": "b1b2c3d4-0003-0000-0000-000000000003"
+      "brief_id": "b1b2c3d4-0005-0000-0000-000000000005"
     }
   ]
 }

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import digestFixture from '../fixtures/signal_digest.json'
 import type { SignalDigest, ZipEntry } from '../types/signal_digest'
 
-const digest = digestFixture as SignalDigest
+const digest = digestFixture as unknown as SignalDigest
 
 const ACTION_STYLES: Record<string, string> = {
   Model:   'bg-red-900 text-red-200 border border-red-700',

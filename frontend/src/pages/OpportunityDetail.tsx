@@ -4,10 +4,10 @@ import type { OpportunityBrief, BriefSignalValue, SourceCitation } from '../type
 
 const brief = briefFixture as OpportunityBrief
 
-const ACTION_STYLES: Record<string, string> = {
-  Model:   'bg-red-900 text-red-200 border border-red-700',
-  Monitor: 'bg-yellow-900 text-yellow-200 border border-yellow-700',
-  Ignore:  'bg-slate-800 text-slate-400 border border-slate-700',
+const ACTION_BADGE: Record<string, string> = {
+  Model:   'bg-secondary-container text-on-secondary-container',
+  Monitor: 'bg-[#fff3cd] text-[#856404]',
+  Ignore:  'bg-surface-container text-on-surface-variant',
 }
 
 const SIGNAL_LABELS: Record<string, string> = {
@@ -39,25 +39,26 @@ function SignalRow({ name, signal }: { name: string; signal: BriefSignalValue })
       : null
 
   return (
-    <div className={`rounded-lg border px-4 py-3 flex items-center gap-4 ${
+    <div className={`flex items-center gap-4 px-4 py-3 rounded-lg border transition-colors ${
       signal.flag
-        ? 'border-red-800 bg-red-950/30'
-        : 'border-slate-700 bg-slate-900'
+        ? 'border-error/30 bg-error-container/20'
+        : 'border-outline-variant bg-surface-container-low'
     }`}>
-      <div className="w-2 h-2 rounded-full shrink-0 mt-0.5" style={{
-        backgroundColor: signal.flag ? '#ef4444' : '#22c55e',
-      }} />
+      <div
+        className="w-2 h-2 rounded-full shrink-0"
+        style={{ backgroundColor: signal.flag ? '#ba1a1a' : '#006c49' }}
+      />
       <div className="flex-1 min-w-0">
-        <p className="text-slate-300 text-sm font-medium">{SIGNAL_LABELS[name]}</p>
-        <p className="text-slate-500 text-xs">{signal.source} · {signal.as_of}</p>
+        <p className="text-body-md font-medium text-on-surface">{SIGNAL_LABELS[name]}</p>
+        <p className="text-body-md text-on-surface-variant text-[12px]">
+          {signal.source} · {signal.as_of}
+        </p>
       </div>
       <div className="text-right shrink-0">
-        <p className={`font-semibold tabular-nums ${signal.flag ? 'text-red-400' : 'text-slate-200'}`}>
+        <p className={`text-data-mono font-bold ${signal.flag ? 'text-error' : 'text-on-surface'}`}>
           {primaryValue}
         </p>
-        {secondary && (
-          <p className="text-slate-500 text-xs">{secondary}</p>
-        )}
+        {secondary && <p className="text-[12px] text-on-surface-variant">{secondary}</p>}
       </div>
     </div>
   )
@@ -65,79 +66,81 @@ function SignalRow({ name, signal }: { name: string; signal: BriefSignalValue })
 
 function CitationRow({ c }: { c: SourceCitation }) {
   return (
-    <tr className="border-t border-slate-800">
-      <td className="py-2 pr-4 text-slate-400 text-sm">{c.source}</td>
-      <td className="py-2 pr-4 text-slate-300 text-sm">{c.metric}</td>
-      <td className="py-2 pr-4 text-slate-200 text-sm tabular-nums text-right">{c.value}</td>
-      <td className="py-2 text-slate-500 text-sm text-right">{c.date}</td>
+    <tr className="border-t border-outline-variant hover:bg-surface-container-low transition-colors">
+      <td className="py-2.5 pr-4 text-body-md text-on-surface-variant">{c.source}</td>
+      <td className="py-2.5 pr-4 text-body-md text-on-surface">{c.metric}</td>
+      <td className="py-2.5 pr-4 text-data-mono text-on-surface text-right">{c.value}</td>
+      <td className="py-2.5 text-body-md text-on-surface-variant text-right">{c.date}</td>
     </tr>
   )
 }
 
-export default function OpportunityDetail() {
-  const scoreColor =
-    brief.distress_score >= 70 ? 'text-red-400' :
-    brief.distress_score >= 40 ? 'text-yellow-400' : 'text-green-400'
+function scoreColor(s: number) {
+  if (s >= 70) return 'text-error'
+  if (s >= 40) return 'text-[#d97706]'
+  return 'text-secondary'
+}
 
+export default function OpportunityDetail() {
   return (
     <div className="max-w-2xl">
-      <Link to="/" className="text-slate-400 text-sm hover:text-white mb-6 inline-block">
-        ← Back to Digest
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1 text-body-md text-on-surface-variant hover:text-primary mb-6 transition-colors"
+      >
+        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+        Back to Dashboard
       </Link>
 
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">
-            {brief.zip}
-            <span className="text-slate-400 font-normal ml-2 text-lg">
-              {brief.city}, {brief.state}
+      {/* Header card */}
+      <div className="bg-surface-container-lowest border-level-1 rounded-lg shadow-level-2 p-6 mb-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-headline-md text-primary">
+              {brief.zip}
+              <span className="text-on-surface-variant font-normal ml-2 text-[18px]">
+                {brief.city}, {brief.state}
+              </span>
+            </h1>
+            <p className="text-body-md text-on-surface-variant mt-1">
+              Generated {new Date(brief.generated_at).toLocaleString()}
+            </p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className={`text-display-lg font-bold tabular-nums ${scoreColor(brief.distress_score)}`}>
+              {brief.distress_score}
+            </p>
+            <span className={`text-[10px] px-2 py-0.5 rounded font-bold mt-1 inline-block ${ACTION_BADGE[brief.action] ?? ACTION_BADGE.Ignore}`}>
+              {brief.action.toUpperCase()}
             </span>
-          </h1>
-          <p className="text-slate-500 text-xs mt-1">
-            Generated {new Date(brief.generated_at).toLocaleString()}
-          </p>
-        </div>
-        <div className="text-right shrink-0">
-          <p className={`text-4xl font-bold tabular-nums ${scoreColor}`}>
-            {brief.distress_score}
-          </p>
-          <span className={`text-xs px-2 py-0.5 rounded font-medium mt-1 inline-block ${ACTION_STYLES[brief.action]}`}>
-            {brief.action}
-          </span>
+          </div>
         </div>
       </div>
 
-      {/* Summary */}
-      <div className="rounded-lg border border-slate-700 bg-slate-900 px-5 py-4 mb-6">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
-          Analysis
-        </h2>
-        <p className="text-slate-300 text-sm leading-relaxed">{brief.summary}</p>
+      {/* Analysis summary */}
+      <div className="bg-surface-container-lowest border-level-1 rounded-lg shadow-level-2 px-6 py-5 mb-5">
+        <h2 className="text-label-caps text-on-surface-variant mb-3">AI ANALYSIS</h2>
+        <p className="text-body-lg text-on-surface leading-relaxed">{brief.summary}</p>
       </div>
 
       {/* Signals */}
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
-        Signals
-      </h2>
-      <div className="flex flex-col gap-2 mb-6">
+      <h2 className="text-label-caps text-on-surface-variant mb-3">SIGNAL BREAKDOWN</h2>
+      <div className="flex flex-col gap-2 mb-5">
         {Object.entries(brief.signals).map(([name, signal]) => (
           <SignalRow key={name} name={name} signal={signal} />
         ))}
       </div>
 
-      {/* Source Citations */}
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
-        Sources
-      </h2>
-      <div className="rounded-lg border border-slate-700 bg-slate-900 px-5 py-2">
+      {/* Source citations */}
+      <h2 className="text-label-caps text-on-surface-variant mb-3">SOURCE CITATIONS</h2>
+      <div className="bg-surface-container-lowest border-level-1 rounded-lg shadow-level-2 px-6 py-2 overflow-hidden">
         <table className="w-full">
           <thead>
             <tr>
-              <th className="text-left text-xs text-slate-500 font-medium py-2 pr-4">Provider</th>
-              <th className="text-left text-xs text-slate-500 font-medium py-2 pr-4">Metric</th>
-              <th className="text-right text-xs text-slate-500 font-medium py-2 pr-4">Value</th>
-              <th className="text-right text-xs text-slate-500 font-medium py-2">Date</th>
+              <th className="text-left text-label-caps text-on-surface-variant py-3 pr-4 border-b border-outline-variant">PROVIDER</th>
+              <th className="text-left text-label-caps text-on-surface-variant py-3 pr-4 border-b border-outline-variant">METRIC</th>
+              <th className="text-right text-label-caps text-on-surface-variant py-3 pr-4 border-b border-outline-variant">VALUE</th>
+              <th className="text-right text-label-caps text-on-surface-variant py-3 border-b border-outline-variant">DATE</th>
             </tr>
           </thead>
           <tbody>
