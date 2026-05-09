@@ -17,8 +17,7 @@ def _sendgrid_key() -> str:
     key = os.environ.get("SENDGRID_API_KEY", "")
     if not key:
         raise ValueError(
-            "SENDGRID_API_KEY environment variable is required. "
-            "Get a key at https://sendgrid.com/"
+            "SENDGRID_API_KEY environment variable is required. Get a key at https://sendgrid.com/"
         )
     return key
 

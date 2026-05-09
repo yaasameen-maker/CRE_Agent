@@ -21,8 +21,17 @@ Bronze (raw API cache) → Silver (ZIP-normalized, 30-day window) → Gold (scor
 
 Each data source is wrapped in an MCP server (`src/mcp/`). Claude never calls external APIs directly — it calls registered tools. Every API response is cached to SQLite on first fetch.
 
-**Phase A (completed 2026-05-01, merged to main):** Thin adapter + OpenRouter — pipeline, digest, brief, and demo runner are in place.
-**Phase B (in progress, Day 7 of 8):** Strands agent layer (`src/agents/`) replaces the thin adapter. Coordinator/subagent design: one `signal_agent` per ZIP runs in parallel, `execution_agent` classifies (Model/Monitor/Ignore) and dispatches delivery. NYC scope with `SCOPE_NYC_ONLY` env toggle.
+**Phase A (completed 2026-05-01):** Thin adapter + OpenRouter — pipeline, digest, brief, and demo runner proven end-to-end.
+**Phase B (completed 2026-05-06):** Strands agent layer — coordinator fans out one sub-agent per ZIP in parallel, `execution_agent` classifies (Model/Monitor/Ignore) and dispatches delivery. NYC scope with `SCOPE_NYC_ONLY` toggle.
+
+### Models
+
+| Task | Model | Why |
+|------|-------|-----|
+| ZIP distress scoring | `claude-haiku-4-5-20251001` | Structured rule-following; forced tool use; 7 numeric signals against explicit thresholds |
+| Opportunity brief generation | `claude-sonnet-4-6` | Nuanced analyst prose; synthesis across all 7 signals; only called for MODEL-classified ZIPs |
+
+Both models use the same `ANTHROPIC_API_KEY`. Estimated cost: under $0.01 per daily 5-ZIP run.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full system diagram and design decisions.
 

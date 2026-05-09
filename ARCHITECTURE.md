@@ -1,43 +1,40 @@
 # CRE Signal Agent — Architecture
 
-**Current Status (2026-05-05):** Phase A is complete and merged to main (PRs #1-5, #8, #9). All 11 backend tasks shipped plus Yaasameen's Action Alerts view (PR #8) and Opportunity Brief detail view (PR #9). Backend verification: 124 passing unit and integration tests. Strands agent layer (`src/agents/`) not yet built — in progress for Phase B.
+**Current Status (2026-05-06):** Phase A and Phase B complete and merged to main. 212 passing tests. Phase C (go-live: API keys, smoke test, delivery wiring, scheduler deployment) is in progress.
 
 ## Build Phases
 
-This project is built in two architectural phases:
+**Phase A — Demo (Days 1–4, 2026-05-01) ✅ COMPLETE**
+Thin LLM adapter in `src/llm/` calling Claude via OpenRouter. Proved the Medallion pipeline, MCP tool pattern, scoring, brief generation, and `run_demo.py` end-to-end. 125 passing tests.
 
-**Phase A — Demo (Days 1–4, through Friday 2026-05-01) ✅ COMPLETE**
-Thin custom LLM adapter in `src/llm/`. Single-shot calls to Claude via OpenRouter. Phase A proved the Medallion pipeline, MCP tool pattern, scoring, brief generation, and `run_demo.py` end-to-end. All 11 tasks shipped and merged to main with 125 passing tests.
+**Phase B — Full MVP (Days 5–8, 2026-05-06) ✅ COMPLETE**
+Strands Agents SDK replaces the thin adapter. `src/llm/openrouter.py` and `src/llm/adapter.py` deleted. `src/agents/` is the LLM entry point. 212 passing tests.
 
-**Saturday 2026-05-02 — Architecture Pivot (IN PROGRESS)**
-Thin adapter is being replaced with the Strands Agents SDK. Claude API key activates. Prompt caching turns on automatically — `cache_control` blocks are built into prompts from day 1 so nothing changes except the provider.
-
-**Phase B — Full MVP (Days 5–8) — Yaasameen V2 Architecture Adopted**
-V2 design uses a coordinator/subagent pattern: one `signal_agent` per ZIP runs in parallel, results flow to an `execution_agent` that classifies and dispatches delivery. `src/llm/` is deleted. `src/agents/` is the new LLM entry point.
-
-Target Phase B structure:
 ```
 src/agents/
-  signal_agent.py      # Strands Agent, scores one ZIP, forced tool use
-  coordinator.py       # asyncio.gather N signal_agent calls in parallel
-  execution_agent.py   # Model/Monitor/Ignore classification + delivery dispatch
-  monitor.py           # APScheduler CronTrigger(hour=8, ET)
+  signal_agent.py      # StrandsAdapter bridge; scores one ZIP via Haiku (forced tool use)
+  coordinator.py       # asyncio.gather — N parallel signal_agent calls, one per ZIP
+  execution_agent.py   # Model/Monitor/Ignore classification + brief generation (Sonnet)
+  monitor.py           # APScheduler CronTrigger(hour=8, ET) + --once flag
 
 src/llm/
-  cache.py             # cache_control helpers — kept from demo phase
-  # adapter.py, openrouter.py deleted
+  adapter.py           # LLMAdapter ABC + LLMResponse — retained as interface contract
+  cache.py             # cache_control helpers for prompt caching
 
 src/mcp/
-  [7 servers]          # Unchanged — Strands reads the same @tool decorated functions
+  [7 servers]          # Unchanged — same @tool decorated functions
 
 src/pipeline/
-  action.py            # ActionClassifier + ActionLabel enum (MODEL/MONITOR/IGNORE)
-  delivery.py          # SendGrid email digest + Slack post_message
+  action.py            # ActionClassification enum (MODEL/MONITOR/IGNORE) + classify_action()
+  delivery.py          # SendGrid email digest + Slack post_message (httpx)
   config.py            # NYC_ZIP_CODES frozenset, SCOPE_NYC_ONLY env toggle
 
 src/prompts/
   scoring.py           # System prompt constants — unchanged between phases
 ```
+
+**Phase C — Go-Live (in progress)**
+API keys → smoke test → frontend wiring → delivery verification → scheduler deployment.
 
 **Execution Agent classification thresholds:**
 - MODEL (score ≥ 70): opportunity brief + email digest + Slack alert
@@ -107,28 +104,19 @@ coordinator.py
                   → log only (IGNORE)
 ```
 
-Each `signal_agent` is a Strands Agent wired with the full tool set:
+Each ZIP scoring call uses Haiku (forced tool use, rule-following). Brief generation for MODEL ZIPs uses Sonnet (analytical prose). Both use the same `ANTHROPIC_API_KEY`.
+
+| Task | Model | Rationale |
+|------|-------|-----------|
+| ZIP distress scoring | `claude-haiku-4-5-20251001` | Structured rubric application; 7 numeric thresholds; forced `score_signals` tool use |
+| Opportunity brief generation | `claude-sonnet-4-6` | Nuanced analyst prose; synthesis across all 7 signals; only called for MODEL ZIPs (score ≥ 70) |
 
 ```python
-from strands import Agent
-from src.mcp import fred, rentcast, bls, attom, fhfa, census, hud
-from src.prompts.scoring import SCORING_SYSTEM_PROMPT
+# src/agents/signal_agent.py — two lazy singletons, one key
+_haiku_model  = AnthropicModel(model_id="claude-haiku-4-5-20251001", max_tokens=1024)  # scoring
+_sonnet_model = AnthropicModel(model_id="claude-sonnet-4-6",          max_tokens=2048)  # briefs
 
-signal_agent = Agent(
-    model="claude-sonnet-4-6",
-    system_prompt=SCORING_SYSTEM_PROMPT,
-    tools=[
-        fred.get_delinquency_rate,
-        rentcast.get_rent_trend,
-        rentcast.get_vacancy_rate,
-        bls.get_employment_trend,
-        attom.get_foreclosure_filings,
-        attom.get_deed_transfers,
-        fhfa.get_price_index,
-        census.get_demographics,
-        hud.get_hud_vacancy,
-    ],
-)
+def get_sonnet_adapter() -> StrandsAdapter: ...  # used by execution_agent
 ```
 
 ## MCP Servers (Tool Layer)
@@ -166,38 +154,32 @@ The Gold layer functions as the retrieval base for brief generation. When Claude
 
 This is enforced structurally: the brief generation prompt includes the target ZIP's Gold record plus its matching Silver source fields. Claude cannot reference a data point that was not passed in.
 
-## LLM Abstraction Layer
+## LLM Layer (Phase B)
+
+`src/llm/` retains the `LLMAdapter` ABC and `LLMResponse` dataclass as the interface contract. `openrouter.py` and the Phase A `anthropic.py` were deleted in Phase B cleanup. Business logic calls `LLMAdapter.complete()` — `StrandsAdapter` in `signal_agent.py` bridges to the Strands `AnthropicModel`.
 
 ```
 src/llm/
-  adapter.py      # LLMAdapter ABC: complete(messages, system, tools) -> LLMResponse
-  openrouter.py   # OpenRouterAdapter(LLMAdapter) — active until Friday 2026-05-01
-  anthropic.py    # AnthropicAdapter(LLMAdapter)  — activated Saturday 2026-05-02
-  cache.py        # cache_control helpers for prompt caching
+  adapter.py   # LLMAdapter ABC + LLMResponse — interface contract only
+  cache.py     # cache_control block helpers (prompt caching)
+  # openrouter.py deleted (Phase B cleanup)
 ```
-
-The adapter interface:
 
 ```python
-class LLMAdapter(ABC):
-    def complete(
-        self,
-        messages: list[dict],
-        system: str | list[dict],  # list[dict] for cache_control blocks
-        tools: list[dict] | None = None,
-        tool_choice: dict | None = None,
-    ) -> LLMResponse: ...
+# src/agents/signal_agent.py — bridge between Strands and LLMAdapter
+class StrandsAdapter:
+    def complete(self, messages, system, tools=None, tool_choice=None) -> _AdapterResponse:
+        # Wraps AnthropicModel.stream(), parses tool-use chunks, logs token cost
+        ...
 ```
-
-Business logic imports `LLMAdapter` only. Swapping providers is a single env var change (`LLM_PROVIDER=openrouter` or `LLM_PROVIDER=anthropic`).
 
 ## Tech Stack
 
 | Component | Choice | Notes |
 |-----------|--------|-------|
 | Language | Python 3.11 | |
-| LLM (now) | OpenRouter (Claude model) | `OPENROUTER_API_KEY` |
-| LLM (Saturday+) | Anthropic Claude API | `ANTHROPIC_API_KEY` |
+| LLM — scoring | Anthropic `claude-haiku-4-5-20251001` | `ANTHROPIC_API_KEY` |
+| LLM — briefs | Anthropic `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` (same key) |
 | Database | SQLite | `data/cre_signal.db` — Postgres migration path is straightforward |
 | Scheduler | APScheduler | In-process; triggers 8am digest pipeline |
 | Email delivery | SendGrid | `SENDGRID_API_KEY` |

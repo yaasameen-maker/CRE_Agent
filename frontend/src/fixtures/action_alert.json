@@ -1,21 +1,37 @@
 {
-  "generated_at": "2026-04-28T08:00:00Z",
+  "generated_at": "2026-05-07T08:00:00Z",
   "alerts": [
     {
-      "zip": "33101",
+      "zip": "10001",
       "action": "Model",
       "distress_score": 87,
       "primary_signal": "vacancy",
       "brief_id": "b1b2c3d4-0001-0000-0000-000000000001",
-      "message": "High distress — vacancy +6.4pp, rent -4.8%, 5 foreclosures. Recommend immediate acquisition modeling."
+      "message": "Midtown (10001) shows critical distress — vacancy +6.4pp, rent -4.8%, 5 foreclosure filings. Recommend immediate acquisition modeling."
     },
     {
-      "zip": "60601",
+      "zip": "10036",
+      "action": "Model",
+      "distress_score": 74,
+      "primary_signal": "vacancy",
+      "brief_id": "b1b2c3d4-0002-0000-0000-000000000002",
+      "message": "Times Square (10036) approaching acquisition threshold — vacancy surging, 3 foreclosures. AI suggests value-add positioning."
+    },
+    {
+      "zip": "10014",
       "action": "Monitor",
       "distress_score": 62,
       "primary_signal": "vacancy",
-      "brief_id": "b1b2c3d4-0002-0000-0000-000000000002",
-      "message": "Developing distress — vacancy rising, 2 foreclosure filings. Watch for further deterioration."
+      "brief_id": "b1b2c3d4-0003-0000-0000-000000000003",
+      "message": "West Village (10014) developing distress — vacancy rising, 2 foreclosure filings. Watch for further deterioration."
+    },
+    {
+      "zip": "10128",
+      "action": "Monitor",
+      "distress_score": 45,
+      "primary_signal": "vacancy",
+      "brief_id": "b1b2c3d4-0004-0000-0000-000000000004",
+      "message": "Upper East Side (10128) showing early stress signals — vacancy up 4.1pp over 30 days. Monitor for escalation."
     }
   ]
 }

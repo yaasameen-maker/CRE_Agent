@@ -17,10 +17,16 @@ import dataclasses
 import logging
 from enum import StrEnum
 
+from src.agents.signal_agent import DEMO_ZIP_CONFIGS, get_sonnet_adapter
 from src.pipeline._db import gold_get_digest
+from src.pipeline.briefs import generate_brief
+from src.pipeline.normalizer import normalize_zip
 from src.pipeline.scorer import GoldRecord
 
 logger = logging.getLogger(__name__)
+
+# Index of ZipConfig by zip_code so _dispatch_model can look up metro/fred/census fields.
+_ZIP_CONFIG_INDEX = {cfg["zip_code"]: cfg for cfg in DEMO_ZIP_CONFIGS}
 
 # ---------------------------------------------------------------------------
 # Classification thresholds
@@ -126,14 +132,35 @@ class ExecutionAgent:
     # ------------------------------------------------------------------
 
     def _dispatch_model(self, records: list[ClassifiedRecord]) -> None:
+        adapter = get_sonnet_adapter()
         for classified in records:
             r = classified.record
-            # Stub: generate_brief() call will be wired when delivery.py exists.
+            cfg = _ZIP_CONFIG_INDEX.get(r.zip_code)
+            if cfg is None:
+                logger.warning(
+                    "ACTION=MODEL zip=%s: no ZipConfig found, skipping brief",
+                    r.zip_code,
+                )
+                continue
+            silver = normalize_zip(
+                r.zip_code,
+                cfg["metro_code"],
+                cfg["fred_series_id"],
+                census_tract=cfg.get("census_tract"),
+            )
+            if silver is None:
+                logger.warning(  # split to stay under 100-char limit
+                    "ACTION=MODEL zip=%s: Silver record unavailable, skipping brief",
+                    r.zip_code,
+                )
+                continue
+            brief = generate_brief(silver, r, adapter)  # type: ignore[arg-type]
             logger.info(
-                "ACTION=MODEL zip=%s rank=%d score=%d | would send email + Slack",
+                "ACTION=MODEL zip=%s rank=%d score=%d | brief: %s",
                 r.zip_code,
                 r.rank,
                 r.overall_score,
+                brief.headline,
             )
 
     def _dispatch_monitor(self, records: list[ClassifiedRecord]) -> None:
