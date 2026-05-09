@@ -10,9 +10,9 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<AnalyticsDashboard />} />
+          <Route index element={<Pipeline />} />
+          <Route path="analytics" element={<AnalyticsDashboard />} />
           <Route path="research" element={<Research />} />
-          <Route path="pipeline" element={<Pipeline />} />
           <Route path="brief/:zip" element={<OpportunityDetail />} />
         </Route>
       </Routes>

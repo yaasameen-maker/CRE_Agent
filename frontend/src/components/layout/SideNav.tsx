@@ -1,10 +1,10 @@
 import { Link, useLocation } from 'react-router-dom'
 
 const NAV_ITEMS = [
-  { label: 'Analytics', to: '/', icon: 'dashboard' },
+  { label: 'Pipeline', to: '/', icon: 'view_kanban' },
+  { label: 'Analytics', to: '/analytics', icon: 'dashboard' },
   { label: 'AI Assistant', to: '/assistant', icon: 'smart_toy' },
   { label: 'Research', to: '/research', icon: 'map' },
-  { label: 'Pipeline', to: '/pipeline', icon: 'view_kanban' },
 ]
 
 export default function SideNav() {
