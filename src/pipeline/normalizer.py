@@ -24,6 +24,7 @@ class SilverRecord:
     price_index_change: float | None = None
     median_household_income: float | None = None
     hud_vacancy_rate: float | None = None
+    dob_violation_count: int | None = None
 
 
 def _is_fresh(fetched_at: str, max_age_days: int) -> bool:
@@ -103,6 +104,14 @@ def _extract_census_income(body: dict[str, object]) -> float | None:
         return value if value > 0 else None
     except (TypeError, ValueError):
         return None
+
+
+def _extract_dob_violations(body: dict[str, object]) -> int | None:
+    """Count violation records returned by the DOB API."""
+    raw = body.get("records", [])
+    if not isinstance(raw, list):
+        return None
+    return len(raw)
 
 
 def _extract_hud_vacancy(body: dict[str, object]) -> float | None:
@@ -186,6 +195,11 @@ def normalize_zip(
     if hud_result is not None:
         hud_vacancy_rate = _extract_hud_vacancy(hud_result[0])
 
+    dob_violation_count: int | None = None
+    dob_result = bronze_get_with_meta("dob", f"violations:{zip_code}:90")
+    if dob_result is not None:
+        dob_violation_count = _extract_dob_violations(dob_result[0])
+
     return SilverRecord(
         zip_code=zip_code,
         delinquency_rate=delinquency_rate,
@@ -200,4 +214,5 @@ def normalize_zip(
         price_index_change=price_index_change,
         median_household_income=median_household_income,
         hud_vacancy_rate=hud_vacancy_rate,
+        dob_violation_count=dob_violation_count,
     )

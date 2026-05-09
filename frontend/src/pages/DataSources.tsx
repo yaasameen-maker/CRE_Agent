@@ -1,4 +1,21 @@
-const SOURCES = [
+const SOURCES: {
+  id: string
+  label: string
+  fullName: string
+  provider: string
+  icon: string
+  color: string
+  bg: string
+  url: string
+  siteUrl: string
+  keyLabel: string
+  keyValue: string
+  metric: string
+  description: string
+  refreshRate: string
+  coverage: string
+  badge?: string
+}[] = [
   {
     id: 'fred',
     label: 'FRED',
@@ -50,6 +67,42 @@ const SOURCES = [
     refreshRate: 'Monthly',
     coverage: 'Per ZIP',
   },
+  {
+    id: 'acris',
+    label: 'ACRIS',
+    fullName: 'Automated City Register Information System',
+    provider: 'NYC Open Data',
+    icon: 'receipt_long',
+    color: 'text-[#b71c1c]',
+    bg: 'bg-[#ffebee]',
+    url: 'https://data.cityofnewyork.us/City-Government/ACRIS-Real-Property-Master/bnx9-e6tj',
+    siteUrl: 'https://acris.nyc.gov',
+    keyLabel: 'Dataset',
+    keyValue: 'bnx9-e6tj + 636b-3b5g',
+    metric: 'Deed Transfers · Buyer Name · Mailing Address',
+    description: 'Every property deed transfer recorded in NYC — buyer name, mailing address, sale price, and date. Used by the outreach agent to surface acquisition leads in high-distress ZIP codes. No API key required.',
+    refreshRate: 'Daily',
+    coverage: 'NYC (all 5 boroughs)',
+    badge: 'FREE',
+  },
+  {
+    id: 'dob',
+    label: 'DOB',
+    fullName: 'NYC Department of Buildings',
+    provider: 'NYC Open Data',
+    icon: 'domain',
+    color: 'text-[#e65100]',
+    bg: 'bg-[#fff3e0]',
+    url: 'https://data.cityofnewyork.us/Housing-Development/DOB-Violations/3h2n-5cm9',
+    siteUrl: 'https://www.nyc.gov/site/buildings/index.page',
+    keyLabel: 'Dataset',
+    keyValue: '3h2n-5cm9',
+    metric: 'Building Violations (90-day count)',
+    description: 'Building violations filed against properties in each ZIP code. A spike in violations signals structural neglect and owner financial stress — fed into the Haiku scoring model as the DOB distress signal. No API key required.',
+    refreshRate: 'Daily',
+    coverage: 'NYC (all 5 boroughs)',
+    badge: 'FREE',
+  },
 ]
 
 const NYC_ZIPS = [
@@ -88,6 +141,11 @@ export default function DataSources() {
                 <div className="flex items-center gap-3 flex-wrap mb-1">
                   <h2 className="text-headline-sm text-primary">{src.label}</h2>
                   <span className="text-label-caps text-on-surface-variant opacity-60">{src.fullName}</span>
+                  {src.badge && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#e8f5e9] text-[#2e7d32]">
+                      {src.badge}
+                    </span>
+                  )}
                   <span className="ml-auto flex items-center gap-1 text-secondary text-body-md font-medium">
                     <span className="w-1.5 h-1.5 rounded-full bg-secondary inline-block" />
                     Active

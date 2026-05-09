@@ -148,6 +148,7 @@ def _build_user_message(record: SilverRecord) -> str:
         f"Price index QoQ change: {record.price_index_change}%\n"
         f"Median household income: ${record.median_household_income}\n"
         f"HUD commercial vacancy rate: {record.hud_vacancy_rate}\n"
+        f"DOB building violations (90-day): {record.dob_violation_count}\n"
         "\nScore this ZIP code using the score_signals tool."
     )
 

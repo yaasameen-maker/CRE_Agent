@@ -42,6 +42,17 @@ def _migrate_gold_drop_fk(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def _migrate_silver_add_dob(conn: sqlite3.Connection) -> None:
+    """One-time migration: add dob_violation_count column to silver_signals."""
+    row = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='silver_signals'"
+    ).fetchone()
+    if row is None or "dob_violation_count" in row[0]:
+        return
+    conn.execute("ALTER TABLE silver_signals ADD COLUMN dob_violation_count INTEGER")
+    conn.commit()
+
+
 def _get_conn() -> sqlite3.Connection:
     path = os.getenv("CRE_DB_PATH", _DEFAULT_DB_PATH)
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
@@ -64,9 +75,11 @@ def _get_conn() -> sqlite3.Connection:
             price_index_change       REAL,
             median_household_income  REAL,
             hud_vacancy_rate         REAL,
+            dob_violation_count      INTEGER,
             normalized_at            TEXT    NOT NULL DEFAULT (datetime('now'))
         )
     """)
+    _migrate_silver_add_dob(conn)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS gold_digest (
             zip_code            TEXT    PRIMARY KEY,
@@ -102,6 +115,7 @@ def silver_upsert(
     price_index_change: float | None = None,
     median_household_income: float | None = None,
     hud_vacancy_rate: float | None = None,
+    dob_violation_count: int | None = None,
 ) -> None:
     conn = _get_conn()
     try:
@@ -112,8 +126,8 @@ def silver_upsert(
                 unemployment_rate, unemployment_mom_change,
                 average_rent, median_rent, rent_change_pct, vacancy_rate,
                 foreclosure_count, price_index_change,
-                median_household_income, hud_vacancy_rate
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                median_household_income, hud_vacancy_rate, dob_violation_count
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(zip_code) DO UPDATE SET
                 delinquency_rate        = excluded.delinquency_rate,
                 delinquency_date        = excluded.delinquency_date,
@@ -127,6 +141,7 @@ def silver_upsert(
                 price_index_change      = excluded.price_index_change,
                 median_household_income = excluded.median_household_income,
                 hud_vacancy_rate        = excluded.hud_vacancy_rate,
+                dob_violation_count     = excluded.dob_violation_count,
                 normalized_at           = datetime('now')
             """,
             (
@@ -143,6 +158,7 @@ def silver_upsert(
                 price_index_change,
                 median_household_income,
                 hud_vacancy_rate,
+                dob_violation_count,
             ),
         )
         conn.commit()

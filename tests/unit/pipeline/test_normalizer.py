@@ -138,8 +138,8 @@ class TestNormalizeZip:
         rc_meta = (_rentcast_body(), _ts(days_ago=1))
 
         with patch("src.pipeline.normalizer.bronze_get_with_meta") as mock_get:
-            # 3 required + 3 optional (attom, fhfa, hud); no census_tract so no census call
-            mock_get.side_effect = [fred_meta, bls_meta, rc_meta, None, None, None]
+            # 3 required + 4 optional (attom, fhfa, hud, dob); no census_tract
+            mock_get.side_effect = [fred_meta, bls_meta, rc_meta, None, None, None, None]
             result = normalize_zip(
                 zip_code="10001",
                 metro_code="LAUMT060310000000003",
@@ -191,6 +191,7 @@ class TestNormalizeZip:
                 (fred_body, _ts(days_ago=1)),
                 bls_meta,
                 rc_meta,
+                None,
                 None,
                 None,
                 None,

@@ -132,6 +132,7 @@ class ExecutionAgent:
     # ------------------------------------------------------------------
 
     def _dispatch_model(self, records: list[ClassifiedRecord]) -> None:
+        from src.mcp._db import bronze_get
         adapter = get_sonnet_adapter()
         for classified in records:
             r = classified.record
@@ -149,7 +150,7 @@ class ExecutionAgent:
                 census_tract=cfg.get("census_tract"),
             )
             if silver is None:
-                logger.warning(  # split to stay under 100-char limit
+                logger.warning(
                     "ACTION=MODEL zip=%s: Silver record unavailable, skipping brief",
                     r.zip_code,
                 )
@@ -162,6 +163,31 @@ class ExecutionAgent:
                 r.overall_score,
                 brief.headline,
             )
+
+            # Pull ACRIS leads for outreach — buyers who recently acquired property
+            # in this high-distress ZIP are prime acquisition partners.
+            acris_data = bronze_get("acris", f"deeds:{r.zip_code}")
+            if acris_data:
+                leads = acris_data.get("records", [])
+                logger.info(
+                    "ACTION=MODEL zip=%s | %d ACRIS deed leads available for outreach",
+                    r.zip_code,
+                    len(leads),
+                )
+                for lead in leads[:5]:  # log top 5 for visibility
+                    logger.info(
+                        "  LEAD zip=%s buyer=%r addr=%r recorded=%s amount=%s",
+                        r.zip_code,
+                        lead.get("buyer_name"),
+                        lead.get("buyer_address_1"),
+                        lead.get("recorded_datetime", "")[:10],
+                        lead.get("doc_amount"),
+                    )
+            else:
+                logger.info(
+                    "ACTION=MODEL zip=%s | no ACRIS leads in Bronze cache yet",
+                    r.zip_code,
+                )
 
     def _dispatch_monitor(self, records: list[ClassifiedRecord]) -> None:
         for classified in records:

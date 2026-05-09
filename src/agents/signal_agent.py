@@ -13,9 +13,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
+from src.mcp.acris import _fetch_acris_deeds
 from src.mcp.attom import _fetch_foreclosure_filings
 from src.mcp.bls import _fetch_employment_trend
 from src.mcp.census import _fetch_demographics
+from src.mcp.dob import _fetch_dob_violations
 from src.mcp.fhfa import _fetch_price_index
 from src.mcp.fred import _fetch_delinquency_rate
 from src.mcp.hud import _fetch_hud_vacancy
@@ -331,6 +333,16 @@ def score_zip_for_coordinator(zip_config: ZipConfig) -> GoldRecord | None:
     except Exception:
         logger.warning("ZIP %s: failed to fetch HUD vacancy data", zip_code, exc_info=True)
 
+    try:
+        _fetch_dob_violations(zip_code)
+    except Exception:
+        logger.warning("ZIP %s: failed to fetch DOB violations", zip_code, exc_info=True)
+
+    try:
+        _fetch_acris_deeds(zip_code)
+    except Exception:
+        logger.warning("ZIP %s: failed to fetch ACRIS deed transfers", zip_code, exc_info=True)
+
     # Step 2: Normalize Silver.
     silver: SilverRecord | None = normalize_zip(
         zip_code,
@@ -358,6 +370,7 @@ def score_zip_for_coordinator(zip_config: ZipConfig) -> GoldRecord | None:
         price_index_change=silver.price_index_change,
         median_household_income=silver.median_household_income,
         hud_vacancy_rate=silver.hud_vacancy_rate,
+        dob_violation_count=silver.dob_violation_count,
     )
 
     # Step 3: Score via Haiku (structured rule-following, no prose needed).
