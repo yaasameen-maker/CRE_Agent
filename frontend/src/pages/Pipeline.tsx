@@ -44,19 +44,8 @@ export default function Pipeline() {
   useEffect(() => {
     if (!TRIGGER_URL) return
 
-    // Poll status
-    const pollStatus = async () => {
-      try {
-        const res = await fetch(`${TRIGGER_URL}/status`)
-        if (res.ok) {
-          const data = await res.json()
-          setRunning(data.running)
-          if (data.last_run) setLastRun(data.last_run)
-        }
-      } catch { /* Railway unreachable */ }
-    }
+    let wasRunning = false
 
-    // Fetch live digest
     const fetchDigest = async () => {
       try {
         const res = await fetch(`${TRIGGER_URL}/digest`)
@@ -71,6 +60,20 @@ export default function Pipeline() {
       } catch { /* fall through to fixture */ }
       setDigest(digestFixture as unknown as SignalDigest)
       setDataSource('fixture')
+    }
+
+    const pollStatus = async () => {
+      try {
+        const res = await fetch(`${TRIGGER_URL}/status`)
+        if (res.ok) {
+          const data = await res.json()
+          setRunning(data.running)
+          if (data.last_run) setLastRun(data.last_run)
+          // Re-fetch digest when cycle transitions from running → done
+          if (wasRunning && !data.running) fetchDigest()
+          wasRunning = data.running
+        }
+      } catch { /* Railway unreachable */ }
     }
 
     pollStatus()
