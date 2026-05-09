@@ -2,8 +2,14 @@ import { useEffect, useState } from 'react'
 import type { SignalDigest, ZipEntry } from '../types/signal_digest'
 import digestFixture from '../fixtures/signal_digest.json'
 
-const TRIGGER_URL = import.meta.env.VITE_TRIGGER_URL as string | undefined
 const TRIGGER_SECRET = import.meta.env.VITE_TRIGGER_SECRET as string | undefined
+
+// Strip any path suffix (e.g. "/run") so we always have just the base origin.
+function baseUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined
+  try { return new URL(raw).origin } catch { return raw }
+}
+const TRIGGER_URL = baseUrl(import.meta.env.VITE_TRIGGER_URL as string | undefined)
 
 function formatTime(iso: string | null): string {
   if (!iso) return '—'

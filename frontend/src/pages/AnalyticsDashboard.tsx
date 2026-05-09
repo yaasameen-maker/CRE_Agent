@@ -5,8 +5,13 @@ import alertFixture from '../fixtures/action_alert.json'
 import type { SignalDigest, ZipEntry } from '../types/signal_digest'
 import type { ActionAlertPayload, Alert } from '../types/action_alert'
 
-const TRIGGER_URL = import.meta.env.VITE_TRIGGER_URL as string | undefined
 const TRIGGER_SECRET = import.meta.env.VITE_TRIGGER_SECRET as string | undefined
+
+function baseUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined
+  try { return new URL(raw).origin } catch { return raw }
+}
+const TRIGGER_URL = baseUrl(import.meta.env.VITE_TRIGGER_URL as string | undefined)
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
