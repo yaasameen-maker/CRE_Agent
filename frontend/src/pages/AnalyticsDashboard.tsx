@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import digestFixture from '../fixtures/signal_digest.json'
-import alertFixture from '../fixtures/action_alert.json'
 import type { SignalDigest, ZipEntry } from '../types/signal_digest'
 import type { ActionAlertPayload, Alert } from '../types/action_alert'
 
@@ -25,6 +23,15 @@ function scoreColor(s: number) {
   if (s >= 70) return { bar: 'bg-error', text: 'text-error' }
   if (s >= 40) return { bar: 'bg-[#d97706]', text: 'text-[#d97706]' }
   return { bar: 'bg-secondary', text: 'text-secondary' }
+}
+
+function EmptyState({ icon, label }: { icon: string; label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-on-surface-variant">
+      <span className="material-symbols-outlined text-[40px] mb-3 opacity-25">{icon}</span>
+      <p className="text-body-md opacity-50">{label}</p>
+    </div>
+  )
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -51,8 +58,8 @@ function KpiCard({
       )}
       <div className="mt-3 h-1 bg-surface-container-low rounded-full overflow-hidden">
         <div
-          className="h-full bg-secondary rounded-full"
-          style={{ width: `${Math.min(100, (parseInt(value) / (label === 'AVG. DISTRESS' ? 100 : total * 2)) * 100)}%` }}
+          className="h-full bg-secondary rounded-full transition-all duration-500"
+          style={{ width: `${Math.min(100, (parseInt(value) / (label === 'AVG. DISTRESS' ? 100 : Math.max(total * 2, 1))) * 100)}%` }}
         />
       </div>
     </div>
@@ -60,6 +67,15 @@ function KpiCard({
 }
 
 function BarChart({ zips }: { zips: ZipEntry[] }) {
+  if (!zips.length) {
+    return (
+      <div className="bg-surface-container-lowest border-level-1 rounded-lg shadow-level-2 p-6">
+        <h2 className="text-headline-sm text-primary mb-6">Distress Score by ZIP Code</h2>
+        <EmptyState icon="bar_chart" label="No scored markets yet" />
+      </div>
+    )
+  }
+
   const bars = zips.map(z => ({ label: z.zip, score: z.distress_score }))
   const peak = Math.max(...bars.map(b => b.score), 1)
 
@@ -130,53 +146,58 @@ function AssetTable({ zips }: { zips: ZipEntry[] }) {
           </button>
         </div>
       </div>
-      <table className="w-full text-left">
-        <thead className="bg-surface-container-low">
-          <tr>
-            <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant">ZIP / AREA</th>
-            <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant text-right">DISTRESS</th>
-            <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant text-center">ACTION</th>
-            <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant">SIGNALS</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-outline-variant">
-          {zips.map((entry: ZipEntry) => {
-            const flagged = Object.entries(entry.signals)
-              .filter(([, s]) => s.flag)
-              .map(([k]) => SIGNAL_LABELS[k])
-            const { text } = scoreColor(entry.distress_score)
-            return (
-              <tr key={entry.zip} className="hover:bg-surface-container-low transition-colors">
-                <td className="px-6 py-3">
-                  <Link to={`/brief/${entry.zip}`} className="hover:underline">
-                    <p className="text-body-md font-bold text-primary">{entry.zip}</p>
-                    <p className="text-body-md text-on-surface-variant">
-                      {'neighborhood' in entry ? (entry as { neighborhood?: string }).neighborhood : entry.city}, {entry.state}
-                    </p>
-                  </Link>
-                </td>
-                <td className="px-6 py-3 text-right">
-                  <span className={`text-data-mono font-bold ${text}`}>{entry.distress_score}</span>
-                </td>
-                <td className="px-6 py-3 text-center">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${ACTION_BADGE[entry.action] ?? ACTION_BADGE.Ignore}`}>
-                    {entry.action.toUpperCase()}
-                  </span>
-                </td>
-                <td className="px-6 py-3">
-                  <div className="flex flex-wrap gap-1">
-                    {flagged.map(f => (
-                      <span key={f} className="text-[10px] px-1.5 py-0.5 bg-error-container text-error rounded font-medium">
-                        {f}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+
+      {!zips.length ? (
+        <EmptyState icon="table_rows" label="Run a cycle to populate market data" />
+      ) : (
+        <table className="w-full text-left">
+          <thead className="bg-surface-container-low">
+            <tr>
+              <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant">ZIP / AREA</th>
+              <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant text-right">DISTRESS</th>
+              <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant text-center">ACTION</th>
+              <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant">SIGNALS</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-outline-variant">
+            {zips.map((entry: ZipEntry) => {
+              const flagged = Object.entries(entry.signals)
+                .filter(([, s]) => s.flag)
+                .map(([k]) => SIGNAL_LABELS[k])
+              const { text } = scoreColor(entry.distress_score)
+              return (
+                <tr key={entry.zip} className="hover:bg-surface-container-low transition-colors">
+                  <td className="px-6 py-3">
+                    <Link to={`/brief/${entry.zip}`} className="hover:underline">
+                      <p className="text-body-md font-bold text-primary">{entry.zip}</p>
+                      <p className="text-body-md text-on-surface-variant">
+                        {'neighborhood' in entry ? (entry as { neighborhood?: string }).neighborhood : entry.city}, {entry.state}
+                      </p>
+                    </Link>
+                  </td>
+                  <td className="px-6 py-3 text-right">
+                    <span className={`text-data-mono font-bold ${text}`}>{entry.distress_score}</span>
+                  </td>
+                  <td className="px-6 py-3 text-center">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${ACTION_BADGE[entry.action] ?? ACTION_BADGE.Ignore}`}>
+                      {entry.action.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3">
+                    <div className="flex flex-wrap gap-1">
+                      {flagged.map(f => (
+                        <span key={f} className="text-[10px] px-1.5 py-0.5 bg-error-container text-error rounded font-medium">
+                          {f}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )}
     </div>
   )
 }
@@ -192,30 +213,39 @@ function AiInsightsPanel({ alerts }: { alerts: Alert[] }) {
         <h2 className="text-headline-sm">AI Insights Engine</h2>
       </div>
       <div className="space-y-4">
-        {modelOps.map((alert: Alert) => (
-          <div key={alert.zip} className="bg-white/10 p-4 border border-white/15 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="material-symbols-outlined text-secondary-fixed text-[18px]">trending_up</span>
-              <span className="text-label-caps">OPPORTUNITY DETECTED</span>
-            </div>
-            <p className="text-body-md text-on-primary-container mb-3">{alert.message}</p>
-            <Link
-              to={`/brief/${alert.zip}`}
-              className="block w-full text-center py-1.5 bg-secondary text-white text-label-caps rounded hover:bg-on-secondary-container transition-colors"
-            >
-              VIEW ANALYSIS
-            </Link>
+        {!modelOps.length && !monitorOps.length ? (
+          <div className="flex flex-col items-center justify-center py-10 text-white/40">
+            <span className="material-symbols-outlined text-[36px] mb-3">smart_toy</span>
+            <p className="text-body-md text-center">No insights yet — run a cycle to generate AI analysis</p>
           </div>
-        ))}
-        {monitorOps.map((alert: Alert) => (
-          <div key={alert.zip} className="bg-white/10 p-4 border border-white/15 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="material-symbols-outlined text-error text-[18px]">warning</span>
-              <span className="text-label-caps">MARKET SHIFT ALERT</span>
-            </div>
-            <p className="text-body-md text-on-primary-container">{alert.message}</p>
-          </div>
-        ))}
+        ) : (
+          <>
+            {modelOps.map((alert: Alert) => (
+              <div key={alert.zip} className="bg-white/10 p-4 border border-white/15 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="material-symbols-outlined text-secondary-fixed text-[18px]">trending_up</span>
+                  <span className="text-label-caps">OPPORTUNITY DETECTED</span>
+                </div>
+                <p className="text-body-md text-on-primary-container mb-3">{alert.message}</p>
+                <Link
+                  to={`/brief/${alert.zip}`}
+                  className="block w-full text-center py-1.5 bg-secondary text-white text-label-caps rounded hover:bg-on-secondary-container transition-colors"
+                >
+                  VIEW ANALYSIS
+                </Link>
+              </div>
+            ))}
+            {monitorOps.map((alert: Alert) => (
+              <div key={alert.zip} className="bg-white/10 p-4 border border-white/15 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="material-symbols-outlined text-error text-[18px]">warning</span>
+                  <span className="text-label-caps">MARKET SHIFT ALERT</span>
+                </div>
+                <p className="text-body-md text-on-primary-container">{alert.message}</p>
+              </div>
+            ))}
+          </>
+        )}
         <div className="pt-4 border-t border-white/15">
           <div className="flex justify-between items-center mb-2">
             <span className="text-label-caps text-on-primary-container">PROCESSING ACCURACY</span>
@@ -233,8 +263,8 @@ function AiInsightsPanel({ alerts }: { alerts: Alert[] }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AnalyticsDashboard() {
-  const [digest, setDigest] = useState<SignalDigest>(digestFixture as unknown as SignalDigest)
-  const [alertPayload, setAlertPayload] = useState<ActionAlertPayload>(alertFixture as ActionAlertPayload)
+  const [digest, setDigest] = useState<SignalDigest | null>(null)
+  const [alertPayload, setAlertPayload] = useState<ActionAlertPayload | null>(null)
   const [syncState, setSyncState] = useState<'idle' | 'running' | 'done' | 'error'>('idle')
 
   useEffect(() => {
@@ -253,17 +283,19 @@ export default function AnalyticsDashboard() {
           const a = await aRes.json()
           if (a.alerts?.length) setAlertPayload(a)
         }
-      } catch { /* stay on fixtures */ }
+      } catch { /* no-op */ }
     }
     fetchLive()
   }, [])
 
-  const totalMarkets = digest.zips.length
-  const modelAlerts = alertPayload.alerts.filter(a => a.action === 'Model').length
-  const avgScore = Math.round(
-    digest.zips.reduce((sum, z) => sum + z.distress_score, 0) / Math.max(totalMarkets, 1)
-  )
-  const maxScore = Math.max(...digest.zips.map(z => z.distress_score), 0)
+  const zips = digest?.zips ?? []
+  const alerts = alertPayload?.alerts ?? []
+  const totalMarkets = zips.length
+  const modelAlerts = alerts.filter(a => a.action === 'Model').length
+  const avgScore = totalMarkets
+    ? Math.round(zips.reduce((sum, z) => sum + z.distress_score, 0) / totalMarkets)
+    : 0
+  const maxScore = totalMarkets ? Math.max(...zips.map(z => z.distress_score)) : 0
 
   async function handleSync() {
     if (syncState === 'running') return
@@ -284,13 +316,13 @@ export default function AnalyticsDashboard() {
 
   return (
     <div>
-      {/* Page header */}
       <div className="flex justify-between items-end mb-8">
         <div>
           <h1 className="text-display-lg text-primary">Market Intelligence Dashboard</h1>
           <p className="text-body-lg text-on-surface-variant mt-1">
-            AI-scored distress signals for NYC commercial real estate —{' '}
-            {new Date(digest.generated_at).toLocaleDateString('en-US', { dateStyle: 'long' })}
+            {digest
+              ? `AI-scored distress signals for NYC — ${new Date(digest.generated_at).toLocaleDateString('en-US', { dateStyle: 'long' })}`
+              : 'AI-scored distress signals for NYC commercial real estate'}
           </p>
         </div>
         <div className="flex gap-3">
@@ -313,16 +345,27 @@ export default function AnalyticsDashboard() {
       {/* KPI grid */}
       <div className="grid grid-cols-12 gap-5 mb-8">
         <div className="col-span-12 md:col-span-4">
-          <KpiCard label="MARKETS SCORED" value={String(totalMarkets)} sub={`Run ID: ${digest.run_id.slice(0, 8)}…`} total={totalMarkets} />
+          <KpiCard
+            label="MARKETS SCORED"
+            value={totalMarkets ? String(totalMarkets) : '—'}
+            sub={digest ? `Run ID: ${digest.run_id.slice(0, 8)}…` : 'No run yet'}
+            total={totalMarkets}
+          />
         </div>
         <div className="col-span-12 md:col-span-4">
-          <KpiCard label="MODEL ALERTS" value={String(modelAlerts)} trend="Active" sub={`${alertPayload.alerts.length} total alerts`} total={totalMarkets} />
+          <KpiCard
+            label="MODEL ALERTS"
+            value={totalMarkets ? String(modelAlerts) : '—'}
+            trend={modelAlerts > 0 ? 'Active' : undefined}
+            sub={totalMarkets ? `${alerts.length} total alerts` : 'No run yet'}
+            total={totalMarkets}
+          />
         </div>
         <div className="col-span-12 md:col-span-4">
           <KpiCard
             label="AVG. DISTRESS"
-            value={String(avgScore)}
-            sub={`Peak: ${maxScore} / 100`}
+            value={totalMarkets ? String(avgScore) : '—'}
+            sub={totalMarkets ? `Peak: ${maxScore} / 100` : 'No run yet'}
             subColor={avgScore >= 70 ? 'text-error' : avgScore >= 40 ? 'text-[#d97706]' : 'text-secondary'}
             total={totalMarkets}
           />
@@ -332,11 +375,11 @@ export default function AnalyticsDashboard() {
       {/* Main grid */}
       <div className="grid grid-cols-12 gap-5">
         <div className="col-span-12 lg:col-span-8 space-y-5">
-          <BarChart zips={digest.zips} />
-          <AssetTable zips={digest.zips} />
+          <BarChart zips={zips} />
+          <AssetTable zips={zips} />
         </div>
         <div className="col-span-12 lg:col-span-4">
-          <AiInsightsPanel alerts={alertPayload.alerts} />
+          <AiInsightsPanel alerts={alerts} />
         </div>
       </div>
     </div>

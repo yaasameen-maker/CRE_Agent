@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { SignalDigest, ZipEntry } from '../types/signal_digest'
-import digestFixture from '../fixtures/signal_digest.json'
 
 const TRIGGER_SECRET = import.meta.env.VITE_TRIGGER_SECRET as string | undefined
 
-// Strip any path suffix (e.g. "/run") so we always have just the base origin.
 function baseUrl(raw: string | undefined): string | undefined {
   if (!raw) return undefined
   try { return new URL(raw).origin } catch { return raw }
@@ -39,7 +37,6 @@ export default function Pipeline() {
   const [lastRun, setLastRun] = useState<string | null>(null)
   const [digest, setDigest] = useState<SignalDigest | null>(null)
   const [syncState, setSyncState] = useState<'idle' | 'running' | 'done' | 'error'>('idle')
-  const [dataSource, setDataSource] = useState<'live' | 'fixture'>('fixture')
 
   useEffect(() => {
     if (!TRIGGER_URL) return
@@ -51,15 +48,9 @@ export default function Pipeline() {
         const res = await fetch(`${TRIGGER_URL}/digest`)
         if (res.ok) {
           const data = await res.json()
-          if (data.zips?.length) {
-            setDigest(data)
-            setDataSource('live')
-            return
-          }
+          if (data.zips?.length) setDigest(data)
         }
-      } catch { /* fall through to fixture */ }
-      setDigest(digestFixture as unknown as SignalDigest)
-      setDataSource('fixture')
+      } catch { /* no-op */ }
     }
 
     const pollStatus = async () => {
@@ -69,7 +60,6 @@ export default function Pipeline() {
           const data = await res.json()
           setRunning(data.running)
           if (data.last_run) setLastRun(data.last_run)
-          // Re-fetch digest when cycle transitions from running → done
           if (wasRunning && !data.running) fetchDigest()
           wasRunning = data.running
         }
@@ -113,7 +103,6 @@ export default function Pipeline() {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex justify-between items-end mb-8">
         <div>
           <h1 className="text-display-lg text-primary">Pipeline Monitor</h1>
@@ -156,7 +145,7 @@ export default function Pipeline() {
           <p className="text-label-caps text-on-surface-variant mb-2">LAST RUN</p>
           <p className="text-headline-sm text-primary">{formatTime(lastRun ?? digest?.generated_at ?? null)}</p>
           <p className="text-body-md text-on-surface-variant mt-1">
-            {dataSource === 'live' ? 'Live data' : 'Using fixture data'}
+            {digest ? 'Live data' : 'No run yet'}
           </p>
         </div>
 
@@ -169,49 +158,53 @@ export default function Pipeline() {
 
       {/* Results table */}
       <div className="bg-surface-container-lowest border-level-1 rounded-lg shadow-level-2 overflow-hidden">
-        <div className="px-6 py-4 border-b border-outline-variant flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-outline-variant">
           <h2 className="text-headline-sm text-primary">Last Scored Markets</h2>
-          {dataSource === 'fixture' && (
-            <span className="text-label-caps text-[#856404] bg-[#fff3cd] px-2 py-0.5 rounded">
-              DEMO DATA — run cycle to load live results
-            </span>
-          )}
         </div>
-        <table className="w-full text-left">
-          <thead className="bg-surface-container-low">
-            <tr>
-              <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant">ZIP / AREA</th>
-              <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant text-right">SCORE</th>
-              <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant text-center">RANK</th>
-              <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant text-center">ACTION</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-outline-variant">
-            {zips.map((entry: ZipEntry) => (
-              <tr key={entry.zip} className="hover:bg-surface-container-low transition-colors">
-                <td className="px-6 py-3">
-                  <p className="text-body-md font-bold text-primary">{entry.zip}</p>
-                  <p className="text-body-md text-on-surface-variant">
-                    {'neighborhood' in entry ? (entry as { neighborhood?: string }).neighborhood : entry.city},&nbsp;{entry.state}
-                  </p>
-                </td>
-                <td className="px-6 py-3 text-right">
-                  <span className={`text-data-mono font-bold ${entry.distress_score >= 70 ? 'text-error' : entry.distress_score >= 40 ? 'text-[#d97706]' : 'text-secondary'}`}>
-                    {entry.distress_score}
-                  </span>
-                </td>
-                <td className="px-6 py-3 text-center">
-                  <span className="text-data-mono text-on-surface-variant">#{entry.rank}</span>
-                </td>
-                <td className="px-6 py-3 text-center">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${ACTION_BADGE[entry.action] ?? ACTION_BADGE.Ignore}`}>
-                    {entry.action.toUpperCase()}
-                  </span>
-                </td>
+
+        {zips.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-on-surface-variant">
+            <span className="material-symbols-outlined text-[48px] mb-4 opacity-30">analytics</span>
+            <p className="text-body-lg font-medium">No results yet</p>
+            <p className="text-body-md mt-1 opacity-70">Run a cycle to generate scored market data</p>
+          </div>
+        ) : (
+          <table className="w-full text-left">
+            <thead className="bg-surface-container-low">
+              <tr>
+                <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant">ZIP / AREA</th>
+                <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant text-right">SCORE</th>
+                <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant text-center">RANK</th>
+                <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant text-center">ACTION</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-outline-variant">
+              {zips.map((entry: ZipEntry) => (
+                <tr key={entry.zip} className="hover:bg-surface-container-low transition-colors">
+                  <td className="px-6 py-3">
+                    <p className="text-body-md font-bold text-primary">{entry.zip}</p>
+                    <p className="text-body-md text-on-surface-variant">
+                      {'neighborhood' in entry ? (entry as { neighborhood?: string }).neighborhood : entry.city},&nbsp;{entry.state}
+                    </p>
+                  </td>
+                  <td className="px-6 py-3 text-right">
+                    <span className={`text-data-mono font-bold ${entry.distress_score >= 70 ? 'text-error' : entry.distress_score >= 40 ? 'text-[#d97706]' : 'text-secondary'}`}>
+                      {entry.distress_score}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3 text-center">
+                    <span className="text-data-mono text-on-surface-variant">#{entry.rank}</span>
+                  </td>
+                  <td className="px-6 py-3 text-center">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${ACTION_BADGE[entry.action] ?? ACTION_BADGE.Ignore}`}>
+                      {entry.action.toUpperCase()}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   )
