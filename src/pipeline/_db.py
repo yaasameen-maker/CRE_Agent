@@ -8,12 +8,47 @@ import sqlite3
 _DEFAULT_DB_PATH = "data/cre_signal.db"
 
 
+def _migrate_gold_drop_fk(conn: sqlite3.Connection) -> None:
+    """One-time migration: remove the FK constraint from gold_digest (schema v1 bug).
+
+    The original schema had REFERENCES silver_signals(zip_code) on the PK, but
+    the pipeline never writes Silver to the DB, so every gold_upsert() failed
+    with FOREIGN KEY constraint failed.
+    """
+    row = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='gold_digest'"
+    ).fetchone()
+    if row is None or "REFERENCES silver_signals" not in row[0]:
+        return  # not yet created, or already migrated
+    conn.execute("ALTER TABLE gold_digest RENAME TO _gold_digest_v1")
+    conn.execute("""
+        CREATE TABLE gold_digest (
+            zip_code            TEXT    PRIMARY KEY,
+            delinquency_score   INTEGER NOT NULL,
+            employment_score    INTEGER NOT NULL,
+            rent_vacancy_score  INTEGER NOT NULL,
+            foreclosure_score   INTEGER NOT NULL DEFAULT 0,
+            price_score         INTEGER NOT NULL DEFAULT 0,
+            demographics_score  INTEGER NOT NULL DEFAULT 0,
+            hud_score           INTEGER NOT NULL DEFAULT 0,
+            overall_score       INTEGER NOT NULL,
+            rationale           TEXT    NOT NULL,
+            rank                INTEGER NOT NULL DEFAULT 0,
+            scored_at           TEXT    NOT NULL DEFAULT (datetime('now'))
+        )
+    """)
+    conn.execute("INSERT INTO gold_digest SELECT * FROM _gold_digest_v1")
+    conn.execute("DROP TABLE _gold_digest_v1")
+    conn.commit()
+
+
 def _get_conn() -> sqlite3.Connection:
     path = os.getenv("CRE_DB_PATH", _DEFAULT_DB_PATH)
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    _migrate_gold_drop_fk(conn)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS silver_signals (
             zip_code                 TEXT    PRIMARY KEY,
@@ -34,7 +69,7 @@ def _get_conn() -> sqlite3.Connection:
     """)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS gold_digest (
-            zip_code            TEXT    PRIMARY KEY REFERENCES silver_signals(zip_code),
+            zip_code            TEXT    PRIMARY KEY,
             delinquency_score   INTEGER NOT NULL,
             employment_score    INTEGER NOT NULL,
             rent_vacancy_score  INTEGER NOT NULL,

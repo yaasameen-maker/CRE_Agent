@@ -362,6 +362,24 @@ def score_zip_for_coordinator(zip_config: ZipConfig) -> GoldRecord | None:
         logger.warning("ZIP %s: Silver normalization returned None (missing/stale data)", zip_code)
         return None
 
+    # Persist Silver so gold_upsert FK constraint is satisfied and API JOINs work.
+    from src.pipeline._db import silver_upsert
+    silver_upsert(
+        zip_code=zip_code,
+        delinquency_rate=silver.delinquency_rate,
+        delinquency_date=silver.delinquency_date,
+        unemployment_rate=silver.unemployment_rate,
+        unemployment_mom_change=silver.unemployment_mom_change,
+        average_rent=silver.average_rent,
+        median_rent=silver.median_rent,
+        rent_change_pct=silver.rent_change_pct,
+        vacancy_rate=silver.vacancy_rate,
+        foreclosure_count=silver.foreclosure_count,
+        price_index_change=silver.price_index_change,
+        median_household_income=silver.median_household_income,
+        hud_vacancy_rate=silver.hud_vacancy_rate,
+    )
+
     # Step 3: Score via Haiku (structured rule-following, no prose needed).
     try:
         model = _get_haiku_model()
