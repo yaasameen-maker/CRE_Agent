@@ -1,9 +1,10 @@
 import { Link, useLocation } from 'react-router-dom'
 
 const NAV_LINKS = [
-  { label: 'Pipeline', to: '/' },
-  { label: 'Analytics', to: '/analytics' },
-  { label: 'Research', to: '/research' },
+  { label: 'Pipeline',     to: '/'             },
+  { label: 'Analytics',    to: '/analytics'    },
+  { label: 'Research',     to: '/research'     },
+  { label: 'Data Sources', to: '/data-sources' },
 ]
 
 export default function TopAppBar() {

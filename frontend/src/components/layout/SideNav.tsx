@@ -1,10 +1,11 @@
 import { Link, useLocation } from 'react-router-dom'
 
 const NAV_ITEMS = [
-  { label: 'Pipeline', to: '/', icon: 'view_kanban' },
-  { label: 'Analytics', to: '/analytics', icon: 'dashboard' },
-  { label: 'Research', to: '/research', icon: 'map' },
-  { label: 'AI Assistant', to: '/assistant', icon: 'smart_toy' },
+  { label: 'Pipeline',     to: '/',             icon: 'view_kanban' },
+  { label: 'Analytics',    to: '/analytics',    icon: 'dashboard'   },
+  { label: 'Research',     to: '/research',     icon: 'map'         },
+  { label: 'Data Sources', to: '/data-sources', icon: 'database'    },
+  { label: 'AI Assistant', to: '/assistant',    icon: 'smart_toy'   },
 ]
 
 export default function SideNav() {
@@ -25,7 +26,7 @@ export default function SideNav() {
       </div>
 
       {/* Nav items */}
-      <div className="space-y-0.5 flex-grow">
+      <div className="space-y-0.5 grow">
         {NAV_ITEMS.map(({ label, to, icon }) => (
           <Link
             key={to}
