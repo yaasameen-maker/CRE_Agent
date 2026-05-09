@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import digestFixture from '../fixtures/signal_digest.json'
 import alertFixture from '../fixtures/action_alert.json'
@@ -7,18 +7,6 @@ import type { ActionAlertPayload, Alert } from '../types/action_alert'
 
 const TRIGGER_URL = import.meta.env.VITE_TRIGGER_URL as string | undefined
 const TRIGGER_SECRET = import.meta.env.VITE_TRIGGER_SECRET as string | undefined
-
-const digest = digestFixture as unknown as SignalDigest
-const alertPayload = alertFixture as ActionAlertPayload
-
-// ── Derived KPIs ──────────────────────────────────────────────────────────────
-
-const totalMarkets = digest.zips.length
-const modelAlerts = alertPayload.alerts.filter(a => a.action === 'Model').length
-const avgScore = Math.round(
-  digest.zips.reduce((sum, z) => sum + z.distress_score, 0) / totalMarkets
-)
-const maxScore = Math.max(...digest.zips.map(z => z.distress_score))
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -37,13 +25,9 @@ function scoreColor(s: number) {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function KpiCard({
-  label, value, sub, trend, subColor,
+  label, value, sub, trend, subColor, total,
 }: {
-  label: string
-  value: string
-  sub?: string
-  trend?: string
-  subColor?: string
+  label: string; value: string; sub?: string; trend?: string; subColor?: string; total: number
 }) {
   return (
     <div className="bg-surface-container-lowest p-6 border-level-1 rounded-lg shadow-level-2">
@@ -63,19 +47,16 @@ function KpiCard({
       <div className="mt-3 h-1 bg-surface-container-low rounded-full overflow-hidden">
         <div
           className="h-full bg-secondary rounded-full"
-          style={{ width: `${Math.min(100, (parseInt(value) / (label === 'AVG. DISTRESS' ? 100 : totalMarkets * 2)) * 100)}%` }}
+          style={{ width: `${Math.min(100, (parseInt(value) / (label === 'AVG. DISTRESS' ? 100 : total * 2)) * 100)}%` }}
         />
       </div>
     </div>
   )
 }
 
-function BarChart() {
-  const bars = digest.zips.map(z => ({
-    label: z.zip,
-    score: z.distress_score,
-  }))
-  const peak = Math.max(...bars.map(b => b.score))
+function BarChart({ zips }: { zips: ZipEntry[] }) {
+  const bars = zips.map(z => ({ label: z.zip, score: z.distress_score }))
+  const peak = Math.max(...bars.map(b => b.score), 1)
 
   return (
     <div className="bg-surface-container-lowest border-level-1 rounded-lg shadow-level-2 p-6">
@@ -94,7 +75,6 @@ function BarChart() {
       </div>
 
       <div className="h-48 flex items-end gap-4 relative">
-        {/* Grid lines */}
         <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
           {[100, 70, 40, 0].map(v => (
             <div key={v} className="flex items-center gap-2">
@@ -103,8 +83,6 @@ function BarChart() {
             </div>
           ))}
         </div>
-
-        {/* Bars */}
         <div className="flex-1 flex items-end gap-3 pl-8">
           {bars.map(({ label, score }) => {
             const { bar } = scoreColor(score)
@@ -114,7 +92,6 @@ function BarChart() {
                 <span className="text-data-mono text-on-surface-variant">{score}</span>
                 <div className="w-full relative" style={{ height: `${(heightPct / 100) * 160}px` }}>
                   <div className={`absolute inset-0 ${bar} rounded-t opacity-90`} />
-                  {/* model threshold line */}
                   {score >= 70 && (
                     <div className="absolute bottom-0 left-0 right-0 border-t-2 border-secondary opacity-50" />
                   )}
@@ -129,13 +106,10 @@ function BarChart() {
   )
 }
 
-function AssetTable() {
+function AssetTable({ zips }: { zips: ZipEntry[] }) {
   const SIGNAL_LABELS: Record<string, string> = {
-    vacancy: 'Vacancy',
-    rent: 'Rent',
-    price_growth: 'Price',
-    employment: 'Jobs',
-    foreclosure: 'Fcl.',
+    vacancy: 'Vacancy', rent: 'Rent', price_growth: 'Price',
+    employment: 'Jobs', foreclosure: 'Fcl.',
   }
 
   return (
@@ -151,7 +125,6 @@ function AssetTable() {
           </button>
         </div>
       </div>
-
       <table className="w-full text-left">
         <thead className="bg-surface-container-low">
           <tr>
@@ -162,12 +135,11 @@ function AssetTable() {
           </tr>
         </thead>
         <tbody className="divide-y divide-outline-variant">
-          {digest.zips.map((entry: ZipEntry) => {
+          {zips.map((entry: ZipEntry) => {
             const flagged = Object.entries(entry.signals)
               .filter(([, s]) => s.flag)
               .map(([k]) => SIGNAL_LABELS[k])
             const { text } = scoreColor(entry.distress_score)
-
             return (
               <tr key={entry.zip} className="hover:bg-surface-container-low transition-colors">
                 <td className="px-6 py-3">
@@ -204,9 +176,9 @@ function AssetTable() {
   )
 }
 
-function AiInsightsPanel() {
-  const modelOps = alertPayload.alerts.filter((a: Alert) => a.action === 'Model')
-  const monitorOps = alertPayload.alerts.filter((a: Alert) => a.action === 'Monitor')
+function AiInsightsPanel({ alerts }: { alerts: Alert[] }) {
+  const modelOps = alerts.filter((a: Alert) => a.action === 'Model')
+  const monitorOps = alerts.filter((a: Alert) => a.action === 'Monitor')
 
   return (
     <div className="bg-primary-container rounded-lg shadow-level-2 p-6 text-white">
@@ -214,13 +186,9 @@ function AiInsightsPanel() {
         <span className="material-symbols-outlined text-secondary-fixed text-[22px]">smart_toy</span>
         <h2 className="text-headline-sm">AI Insights Engine</h2>
       </div>
-
       <div className="space-y-4">
         {modelOps.map((alert: Alert) => (
-          <div
-            key={alert.zip}
-            className="bg-white/10 p-4 border border-white/15 rounded-lg"
-          >
+          <div key={alert.zip} className="bg-white/10 p-4 border border-white/15 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               <span className="material-symbols-outlined text-secondary-fixed text-[18px]">trending_up</span>
               <span className="text-label-caps">OPPORTUNITY DETECTED</span>
@@ -234,12 +202,8 @@ function AiInsightsPanel() {
             </Link>
           </div>
         ))}
-
         {monitorOps.map((alert: Alert) => (
-          <div
-            key={alert.zip}
-            className="bg-white/10 p-4 border border-white/15 rounded-lg"
-          >
+          <div key={alert.zip} className="bg-white/10 p-4 border border-white/15 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               <span className="material-symbols-outlined text-error text-[18px]">warning</span>
               <span className="text-label-caps">MARKET SHIFT ALERT</span>
@@ -247,8 +211,6 @@ function AiInsightsPanel() {
             <p className="text-body-md text-on-primary-container">{alert.message}</p>
           </div>
         ))}
-
-        {/* Accuracy meter */}
         <div className="pt-4 border-t border-white/15">
           <div className="flex justify-between items-center mb-2">
             <span className="text-label-caps text-on-primary-container">PROCESSING ACCURACY</span>
@@ -266,7 +228,37 @@ function AiInsightsPanel() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AnalyticsDashboard() {
+  const [digest, setDigest] = useState<SignalDigest>(digestFixture as unknown as SignalDigest)
+  const [alertPayload, setAlertPayload] = useState<ActionAlertPayload>(alertFixture as ActionAlertPayload)
   const [syncState, setSyncState] = useState<'idle' | 'running' | 'done' | 'error'>('idle')
+
+  useEffect(() => {
+    if (!TRIGGER_URL) return
+    const fetchLive = async () => {
+      try {
+        const [dRes, aRes] = await Promise.all([
+          fetch(`${TRIGGER_URL}/digest`),
+          fetch(`${TRIGGER_URL}/alerts`),
+        ])
+        if (dRes.ok) {
+          const d = await dRes.json()
+          if (d.zips?.length) setDigest(d)
+        }
+        if (aRes.ok) {
+          const a = await aRes.json()
+          if (a.alerts?.length) setAlertPayload(a)
+        }
+      } catch { /* stay on fixtures */ }
+    }
+    fetchLive()
+  }, [])
+
+  const totalMarkets = digest.zips.length
+  const modelAlerts = alertPayload.alerts.filter(a => a.action === 'Model').length
+  const avgScore = Math.round(
+    digest.zips.reduce((sum, z) => sum + z.distress_score, 0) / Math.max(totalMarkets, 1)
+  )
+  const maxScore = Math.max(...digest.zips.map(z => z.distress_score), 0)
 
   async function handleSync() {
     if (syncState === 'running') return
@@ -277,7 +269,7 @@ export default function AnalyticsDashboard() {
     }
     setSyncState('running')
     try {
-      await fetch(`${TRIGGER_URL}?token=${TRIGGER_SECRET}`)
+      await fetch(`${TRIGGER_URL}/run?token=${TRIGGER_SECRET}`)
       setSyncState('done')
     } catch {
       setSyncState('error')
@@ -292,7 +284,8 @@ export default function AnalyticsDashboard() {
         <div>
           <h1 className="text-display-lg text-primary">Market Intelligence Dashboard</h1>
           <p className="text-body-lg text-on-surface-variant mt-1">
-            AI-scored distress signals for NYC commercial real estate — {new Date(digest.generated_at).toLocaleDateString('en-US', { dateStyle: 'long' })}
+            AI-scored distress signals for NYC commercial real estate —{' '}
+            {new Date(digest.generated_at).toLocaleDateString('en-US', { dateStyle: 'long' })}
           </p>
         </div>
         <div className="flex gap-3">
@@ -315,19 +308,10 @@ export default function AnalyticsDashboard() {
       {/* KPI grid */}
       <div className="grid grid-cols-12 gap-5 mb-8">
         <div className="col-span-12 md:col-span-4">
-          <KpiCard
-            label="MARKETS SCORED"
-            value={String(totalMarkets)}
-            sub={`Run ID: ${digest.run_id.slice(0, 8)}…`}
-          />
+          <KpiCard label="MARKETS SCORED" value={String(totalMarkets)} sub={`Run ID: ${digest.run_id.slice(0, 8)}…`} total={totalMarkets} />
         </div>
         <div className="col-span-12 md:col-span-4">
-          <KpiCard
-            label="MODEL ALERTS"
-            value={String(modelAlerts)}
-            trend="Active"
-            sub={`${alertPayload.alerts.length} total alerts`}
-          />
+          <KpiCard label="MODEL ALERTS" value={String(modelAlerts)} trend="Active" sub={`${alertPayload.alerts.length} total alerts`} total={totalMarkets} />
         </div>
         <div className="col-span-12 md:col-span-4">
           <KpiCard
@@ -335,21 +319,19 @@ export default function AnalyticsDashboard() {
             value={String(avgScore)}
             sub={`Peak: ${maxScore} / 100`}
             subColor={avgScore >= 70 ? 'text-error' : avgScore >= 40 ? 'text-[#d97706]' : 'text-secondary'}
+            total={totalMarkets}
           />
         </div>
       </div>
 
       {/* Main grid */}
       <div className="grid grid-cols-12 gap-5">
-        {/* Left: chart + table */}
         <div className="col-span-12 lg:col-span-8 space-y-5">
-          <BarChart />
-          <AssetTable />
+          <BarChart zips={digest.zips} />
+          <AssetTable zips={digest.zips} />
         </div>
-
-        {/* Right: AI panel */}
         <div className="col-span-12 lg:col-span-4">
-          <AiInsightsPanel />
+          <AiInsightsPanel alerts={alertPayload.alerts} />
         </div>
       </div>
     </div>

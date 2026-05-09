@@ -188,3 +188,26 @@ def gold_get_digest() -> list[sqlite3.Row]:
         ).fetchall()
     finally:
         conn.close()
+
+
+def gold_get_full() -> list[sqlite3.Row]:
+    """Return gold scores joined with raw silver signal values for API responses."""
+    conn = _get_conn()
+    try:
+        return conn.execute(
+            """
+            SELECT
+                g.zip_code, g.overall_score, g.rank, g.rationale,
+                g.delinquency_score, g.employment_score,
+                g.rent_vacancy_score, g.foreclosure_score, g.price_score,
+                g.scored_at,
+                s.vacancy_rate, s.rent_change_pct, s.average_rent,
+                s.unemployment_rate, s.unemployment_mom_change,
+                s.foreclosure_count, s.price_index_change
+            FROM gold_digest g
+            JOIN silver_signals s ON s.zip_code = g.zip_code
+            ORDER BY g.rank ASC
+            """
+        ).fetchall()
+    finally:
+        conn.close()
