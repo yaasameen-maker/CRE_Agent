@@ -12,7 +12,11 @@ const TRIGGER_URL = baseUrl(import.meta.env.VITE_TRIGGER_URL as string | undefin
 
 function formatTime(iso: string | null): string {
   if (!iso) return '—'
-  return new Date(iso).toLocaleString('en-US', {
+  // SQLite datetime('now') returns bare "YYYY-MM-DD HH:MM:SS" (UTC, no suffix).
+  // Without the Z, Chrome treats it as local time and double-shifts the offset.
+  const hasOffset = iso.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(iso)
+  const utcIso = hasOffset ? iso : iso.replace(' ', 'T') + 'Z'
+  return new Date(utcIso).toLocaleString('en-US', {
     month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
   })
 }
