@@ -35,8 +35,11 @@ class _Handler(BaseHTTPRequestHandler):
         self.wfile.write(encoded)
 
     def do_GET(self) -> None:  # noqa: N802
-        if urlparse(self.path).path == "/health":
+        parsed = urlparse(self.path)
+        if parsed.path == "/health":
             self._send(200, '{"status":"ok"}')
+        elif parsed.path == "/run":
+            self.do_POST()
         else:
             self._send(404, '{"error":"not found"}')
 
