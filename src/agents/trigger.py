@@ -65,6 +65,7 @@ def _build_digest() -> dict:
             "distress_score": score,
             "rank": row["rank"],
             "action": action,
+            "scored_at": row["scored_at"],
             "signals": {
                 "vacancy":      {"value": vac,   "change_30d": 0,    "flag": row["rent_vacancy_score"] > 0},
                 "rent":         {"value": rent,  "change_30d": rent, "flag": row["rent_vacancy_score"] > 0},

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { SignalDigest, ZipEntry } from '../types/signal_digest'
 
 const TRIGGER_SECRET = import.meta.env.VITE_TRIGGER_SECRET as string | undefined
@@ -176,31 +177,37 @@ export default function Pipeline() {
                 <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant text-right">SCORE</th>
                 <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant text-center">RANK</th>
                 <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant text-center">ACTION</th>
+                <th className="px-6 py-3 text-label-caps text-on-surface-variant border-b border-outline-variant text-right">GATHERED</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant">
               {zips.map((entry: ZipEntry) => (
-                <tr key={entry.zip} className="hover:bg-surface-container-low transition-colors">
-                  <td className="px-6 py-3">
-                    <p className="text-body-md font-bold text-primary">{entry.zip}</p>
-                    <p className="text-body-md text-on-surface-variant">
-                      {'neighborhood' in entry ? (entry as { neighborhood?: string }).neighborhood : entry.city},&nbsp;{entry.state}
-                    </p>
-                  </td>
-                  <td className="px-6 py-3 text-right">
-                    <span className={`text-data-mono font-bold ${entry.distress_score >= 70 ? 'text-error' : entry.distress_score >= 40 ? 'text-[#d97706]' : 'text-secondary'}`}>
-                      {entry.distress_score}
-                    </span>
-                  </td>
-                  <td className="px-6 py-3 text-center">
-                    <span className="text-data-mono text-on-surface-variant">#{entry.rank}</span>
-                  </td>
-                  <td className="px-6 py-3 text-center">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${ACTION_BADGE[entry.action] ?? ACTION_BADGE.Ignore}`}>
-                      {entry.action.toUpperCase()}
-                    </span>
-                  </td>
-                </tr>
+                <Link key={entry.zip} to={`/brief/${entry.zip}`} className="contents">
+                  <tr className="hover:bg-surface-container-low transition-colors cursor-pointer">
+                    <td className="px-6 py-3">
+                      <p className="text-body-md font-bold text-primary">{entry.zip}</p>
+                      <p className="text-body-md text-on-surface-variant">
+                        {'neighborhood' in entry ? (entry as { neighborhood?: string }).neighborhood : entry.city},&nbsp;{entry.state}
+                      </p>
+                    </td>
+                    <td className="px-6 py-3 text-right">
+                      <span className={`text-data-mono font-bold ${entry.distress_score >= 70 ? 'text-error' : entry.distress_score >= 40 ? 'text-[#d97706]' : 'text-secondary'}`}>
+                        {entry.distress_score}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-center">
+                      <span className="text-data-mono text-on-surface-variant">#{entry.rank}</span>
+                    </td>
+                    <td className="px-6 py-3 text-center">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${ACTION_BADGE[entry.action] ?? ACTION_BADGE.Ignore}`}>
+                        {entry.action.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-right">
+                      <p className="text-body-md text-on-surface tabular-nums">{formatTime(entry.scored_at)}</p>
+                    </td>
+                  </tr>
+                </Link>
               ))}
             </tbody>
           </table>

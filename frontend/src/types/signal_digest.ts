@@ -23,6 +23,7 @@ export interface ZipEntry {
   distress_score: number
   rank: number
   action: Action
+  scored_at: string
   signals: ZipSignals
   brief_id: string
 }
