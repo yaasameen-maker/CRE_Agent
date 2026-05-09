@@ -1,8 +1,12 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import digestFixture from '../fixtures/signal_digest.json'
 import alertFixture from '../fixtures/action_alert.json'
 import type { SignalDigest, ZipEntry } from '../types/signal_digest'
 import type { ActionAlertPayload, Alert } from '../types/action_alert'
+
+const TRIGGER_URL = import.meta.env.VITE_TRIGGER_URL as string | undefined
+const TRIGGER_SECRET = import.meta.env.VITE_TRIGGER_SECRET as string | undefined
 
 const digest = digestFixture as unknown as SignalDigest
 const alertPayload = alertFixture as ActionAlertPayload
@@ -262,6 +266,25 @@ function AiInsightsPanel() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AnalyticsDashboard() {
+  const [syncState, setSyncState] = useState<'idle' | 'running' | 'done' | 'error'>('idle')
+
+  async function handleSync() {
+    if (syncState === 'running') return
+    if (!TRIGGER_URL || !TRIGGER_SECRET) {
+      setSyncState('error')
+      setTimeout(() => setSyncState('idle'), 3000)
+      return
+    }
+    setSyncState('running')
+    try {
+      await fetch(`${TRIGGER_URL}?token=${TRIGGER_SECRET}`)
+      setSyncState('done')
+    } catch {
+      setSyncState('error')
+    }
+    setTimeout(() => setSyncState('idle'), 4000)
+  }
+
   return (
     <div>
       {/* Page header */}
@@ -276,9 +299,15 @@ export default function AnalyticsDashboard() {
           <button className="px-5 py-2 border border-outline-variant rounded text-label-caps bg-white hover:bg-surface-container-low transition-colors">
             EXPORT DATA
           </button>
-          <button className="px-5 py-2 bg-secondary text-white rounded text-label-caps flex items-center gap-2 hover:opacity-90 transition-opacity">
-            <span className="material-symbols-outlined text-[16px]">refresh</span>
-            SYNC LIVE FEEDS
+          <button
+            onClick={handleSync}
+            disabled={syncState === 'running'}
+            className="px-5 py-2 bg-secondary text-white rounded text-label-caps flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <span className={`material-symbols-outlined text-[16px] ${syncState === 'running' ? 'animate-spin' : ''}`}>
+              refresh
+            </span>
+            {syncState === 'running' ? 'RUNNING...' : syncState === 'done' ? 'CYCLE STARTED' : syncState === 'error' ? 'NOT CONFIGURED' : 'SYNC LIVE FEEDS'}
           </button>
         </div>
       </div>
