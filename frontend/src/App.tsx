@@ -3,6 +3,7 @@ import Layout from './components/layout/Layout'
 import AnalyticsDashboard from './pages/AnalyticsDashboard'
 import Research from './pages/Research'
 import Pipeline from './pages/Pipeline'
+import AiAssistant from './pages/AiAssistant'
 import OpportunityDetail from './pages/OpportunityDetail'
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
           <Route index element={<Pipeline />} />
           <Route path="analytics" element={<AnalyticsDashboard />} />
           <Route path="research" element={<Research />} />
+          <Route path="assistant" element={<AiAssistant />} />
           <Route path="brief/:zip" element={<OpportunityDetail />} />
         </Route>
       </Routes>
