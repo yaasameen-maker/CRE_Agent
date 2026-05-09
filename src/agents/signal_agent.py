@@ -102,121 +102,95 @@ class StrandsAdapter:
         tools: list[dict[str, object]] | None = None,
         tool_choice: dict[str, object] | None = None,
     ) -> Any:
-        """Send a completion request through the Strands model.
+        """Send a completion request via the synchronous Anthropic SDK.
+
+        Bypasses Strands' async streaming to avoid event-loop conflicts when
+        called from multiple thread-pool workers concurrently.  The Strands
+        AnthropicModel stored in self._model is only used to read model_id and
+        max_tokens — the actual HTTP call goes through anthropic.Anthropic().
 
         Returns an object with a .tool_calls tuple mirroring LLMResponse.
         """
-        import asyncio
-        import json as _json
+        import anthropic as _anthropic
 
-        from strands.types.tools import ToolSpec
+        # Read model config from the wrapped Strands model.
+        cfg = self._model.config if hasattr(self._model, "config") else {}
+        model_id: str = cfg.get("model_id", "claude-haiku-4-5-20251001")
+        max_tokens: int = cfg.get("max_tokens", 1024)
 
-        # Build Strands ToolSpec list from the raw tool dicts.
-        tool_specs: list[ToolSpec] = []
-        for t in tools or []:
-            tool_specs.append(
-                {
-                    "name": str(t["name"]),
-                    "description": str(t.get("description", "")),
-                    "inputSchema": {
-                        "json": t.get("input_schema", t.get("inputSchema", {})),
-                    },
-                }
-            )
-
-        # Build system prompt string (cache_control blocks are stripped to text).
+        # Build system prompt string (strip cache_control blocks to plain text).
         if isinstance(system, str):
             system_str: str | None = system
         else:
-            parts = []
-            for block in system:
-                if isinstance(block, dict) and block.get("type") == "text":
-                    parts.append(str(block.get("text", "")))
+            parts = [
+                str(b.get("text", ""))
+                for b in system
+                if isinstance(b, dict) and b.get("type") == "text"
+            ]
             system_str = "\n".join(parts) if parts else None
 
-        # Strands ToolChoice type mirrors Anthropic's: {"tool": {"name": ...}}
-        strands_tool_choice = None
+        # Build Anthropic messages (string content stays as-is).
+        anthropic_messages: list[dict[str, object]] = []
+        for msg in messages:
+            anthropic_messages.append(
+                {"role": msg["role"], "content": msg.get("content", "")}
+            )
+
+        # Build Anthropic tools list.
+        anthropic_tools: list[dict[str, object]] = [
+            {
+                "name": str(t["name"]),
+                "description": str(t.get("description", "")),
+                "input_schema": t.get("input_schema", t.get("inputSchema", {})),
+            }
+            for t in (tools or [])
+        ]
+
+        # Build tool_choice in Anthropic format.
+        anthropic_tool_choice: dict[str, object] | None = None
         if tool_choice:
             tc_type = tool_choice.get("type")
             if tc_type == "tool":
-                strands_tool_choice = {"tool": {"name": tool_choice["name"]}}
+                anthropic_tool_choice = {"type": "tool", "name": tool_choice["name"]}
             elif tc_type == "any":
-                strands_tool_choice = {"any": {}}
+                anthropic_tool_choice = {"type": "any"}
             elif tc_type == "auto":
-                strands_tool_choice = {"auto": {}}
+                anthropic_tool_choice = {"type": "auto"}
 
-        # Build Strands message format.
-        strands_messages = []
-        for msg in messages:
-            content = msg.get("content", "")
-            strands_messages.append(
-                {
-                    "role": msg["role"],
-                    "content": ([{"text": content}] if isinstance(content, str) else content),
-                }
-            )
+        # Assemble kwargs — omit optional keys when absent to keep the request minimal.
+        kwargs: dict[str, object] = {
+            "model": model_id,
+            "max_tokens": max_tokens,
+            "messages": anthropic_messages,
+        }
+        if system_str:
+            kwargs["system"] = system_str
+        if anthropic_tools:
+            kwargs["tools"] = anthropic_tools
+        if anthropic_tool_choice:
+            kwargs["tool_choice"] = anthropic_tool_choice
 
-        # stream() is an async generator — drive it with asyncio.run() which
-        # is safe here because score_zip_for_coordinator runs in a thread-pool
-        # executor (no running event loop in that thread).
-        async def _collect() -> tuple[
-            list[dict[str, object]], list[str], str, dict[str, int]
-        ]:
-            _tool_calls: list[dict[str, object]] = []
-            _content_text: list[str] = []
-            _stop_reason = "end_turn"
-            _usage: dict[str, int] = {}
-            _current_tool: dict[str, object] | None = None
-            _current_input_json: list[str] = []
+        # Synchronous call — safe from any thread, no event-loop dependency.
+        client = _anthropic.Anthropic()
+        response = client.messages.create(**kwargs)  # type: ignore[arg-type]
 
-            async for chunk in self._model.stream(
-                messages=strands_messages,
-                tool_specs=tool_specs or None,
-                system_prompt=system_str,
-                tool_choice=strands_tool_choice,
-            ):
-                if "contentBlockStart" in chunk:
-                    start = chunk["contentBlockStart"].get("start", {})
-                    if "toolUse" in start:
-                        _current_tool = {
-                            "id": start["toolUse"].get("toolUseId", ""),
-                            "name": start["toolUse"].get("name", ""),
-                            "input": {},
-                        }
-                        _current_input_json = []
-                elif "contentBlockDelta" in chunk:
-                    delta = chunk["contentBlockDelta"].get("delta", {})
-                    if "toolUse" in delta:
-                        _current_input_json.append(str(delta["toolUse"].get("input", "")))
-                    elif "text" in delta:
-                        _content_text.append(str(delta["text"]))
-                elif "contentBlockStop" in chunk:
-                    if _current_tool is not None:
-                        raw_json = "".join(_current_input_json)
-                        try:
-                            _current_tool["input"] = _json.loads(raw_json) if raw_json else {}
-                        except _json.JSONDecodeError:
-                            _current_tool["input"] = {}
-                        _tool_calls.append(_current_tool)
-                        _current_tool = None
-                        _current_input_json = []
-                elif "messageStop" in chunk:
-                    _stop_reason = chunk["messageStop"].get("stopReason", "end_turn")
-                elif "metadata" in chunk:
-                    u = chunk["metadata"].get("usage", {})
-                    _usage = {
-                        "prompt_tokens": int(u.get("inputTokens", 0)),
-                        "completion_tokens": int(u.get("outputTokens", 0)),
-                    }
+        # Extract tool-use blocks.
+        tool_calls: list[dict[str, object]] = [
+            {"id": b.id, "name": b.name, "input": b.input}
+            for b in response.content
+            if b.type == "tool_use"
+        ]
+        content_text: str | None = next(
+            (b.text for b in response.content if b.type == "text"), None
+        )
+        usage = {
+            "prompt_tokens": response.usage.input_tokens,
+            "completion_tokens": response.usage.output_tokens,
+        }
 
-            return _tool_calls, _content_text, _stop_reason, _usage
-
-        tool_calls, content_text, stop_reason, usage = asyncio.run(_collect())
-
-        # Log token usage per call so operator can track spend against budget.
-        prompt_t = usage.get("prompt_tokens", 0)
-        completion_t = usage.get("completion_tokens", 0)
-        model_id = self._model.config.get("model_id", "unknown") if hasattr(self._model, "config") else "unknown"
+        # Log token usage so operator can track spend against budget.
+        prompt_t = usage["prompt_tokens"]
+        completion_t = usage["completion_tokens"]
         if "haiku" in model_id:
             cost = (prompt_t * 0.8 + completion_t * 4) / 1_000_000
         else:
@@ -229,11 +203,10 @@ class StrandsAdapter:
             cost,
         )
 
-        # Return a duck-typed response object compatible with score_zip / generate_brief.
         return _AdapterResponse(
-            content="\n".join(content_text) if content_text else None,
+            content=content_text,
             tool_calls=tuple(tool_calls),
-            stop_reason=stop_reason,
+            stop_reason=response.stop_reason or "end_turn",
             usage=usage,
         )
 
