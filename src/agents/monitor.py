@@ -54,6 +54,9 @@ if __name__ == "__main__":
         from apscheduler.schedulers.blocking import BlockingScheduler
         from apscheduler.triggers.cron import CronTrigger
 
+        from src.agents.trigger import start_trigger_server
+        start_trigger_server()
+
         scheduler = BlockingScheduler()
         scheduler.add_job(
             run_daily_cycle,
