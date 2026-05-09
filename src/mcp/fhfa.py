@@ -35,10 +35,7 @@ def _fetch_price_index(
 
     api_key = os.environ.get("FHFA_API_KEY", "")
     if not api_key:
-        raise ValueError(
-            "FHFA_API_KEY environment variable is required. "
-            "Register at https://www.fhfa.gov/hpi/download"
-        )
+        return {}
 
     url = f"{_FHFA_BASE_URL}/hpi"
     params = {"metro_area": metro_code, "api_key": api_key, "format": "json"}

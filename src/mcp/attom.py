@@ -36,10 +36,7 @@ def _fetch_foreclosure_filings(
 
     api_key = os.environ.get("ATTOM_API_KEY", "")
     if not api_key:
-        raise ValueError(
-            "ATTOM_API_KEY environment variable is required. "
-            "Get a key at https://api.attomdata.com/"
-        )
+        return {}
 
     url = f"{_ATTOM_BASE_URL}/assessment/detail"
     params = {
@@ -84,10 +81,7 @@ def _fetch_deed_transfers(
 
     api_key = os.environ.get("ATTOM_API_KEY", "")
     if not api_key:
-        raise ValueError(
-            "ATTOM_API_KEY environment variable is required. "
-            "Get a key at https://api.attomdata.com/"
-        )
+        return {}
 
     url = f"{_ATTOM_BASE_URL}/sale/detail"
     params = {"postalcode": zip_code, "daysback": str(days_back)}
