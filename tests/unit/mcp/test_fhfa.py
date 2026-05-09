@@ -88,14 +88,14 @@ class TestFetchPriceIndexRequest:
 
 
 class TestFetchPriceIndexErrors:
-    def test_missing_api_key_raises(self) -> None:
+    def test_missing_api_key_returns_empty(self) -> None:
         with patch("src.mcp.fhfa.bronze_get", return_value=None):
             clean = {k: v for k, v in os.environ.items() if k != "FHFA_API_KEY"}
             with patch.dict(os.environ, clean, clear=True):
                 from src.mcp.fhfa import _fetch_price_index
 
-                with pytest.raises(ValueError, match="FHFA_API_KEY"):
-                    _fetch_price_index("C3562", client=_mock_client({}))
+                result = _fetch_price_index("C3562", client=_mock_client({}))
+                assert result == {}
 
     def test_http_error_raises(self) -> None:
         with patch("src.mcp.fhfa.bronze_get", return_value=None):

@@ -106,6 +106,9 @@ class StrandsAdapter:
 
         Returns an object with a .tool_calls tuple mirroring LLMResponse.
         """
+        import asyncio
+        import json as _json
+
         from strands.types.tools import ToolSpec
 
         # Build Strands ToolSpec list from the raw tool dicts.
@@ -153,63 +156,67 @@ class StrandsAdapter:
                 }
             )
 
-        request = self._model.format_request(
-            messages=strands_messages,
-            tool_specs=tool_specs or None,
-            system_prompt=system_str,
-            tool_choice=strands_tool_choice,
-        )
+        # stream() is an async generator — drive it with asyncio.run() which
+        # is safe here because score_zip_for_coordinator runs in a thread-pool
+        # executor (no running event loop in that thread).
+        async def _collect() -> tuple[
+            list[dict[str, object]], list[str], str, dict[str, int]
+        ]:
+            _tool_calls: list[dict[str, object]] = []
+            _content_text: list[str] = []
+            _stop_reason = "end_turn"
+            _usage: dict[str, int] = {}
+            _current_tool: dict[str, object] | None = None
+            _current_input_json: list[str] = []
 
-        # stream() is a synchronous generator in Strands AnthropicModel.
-        tool_calls: list[dict[str, object]] = []
-        content_text: list[str] = []
-        stop_reason = "end_turn"
-        usage: dict[str, int] = {}
-
-        current_tool: dict[str, object] | None = None
-        current_input_json: list[str] = []
-
-        for chunk in self._model.stream(request):
-            if "contentBlockStart" in chunk:
-                start = chunk["contentBlockStart"].get("start", {})
-                if "toolUse" in start:
-                    current_tool = {
-                        "id": start["toolUse"].get("toolUseId", ""),
-                        "name": start["toolUse"].get("name", ""),
-                        "input": {},
+            async for chunk in self._model.stream(
+                messages=strands_messages,
+                tool_specs=tool_specs or None,
+                system_prompt=system_str,
+                tool_choice=strands_tool_choice,
+            ):
+                if "contentBlockStart" in chunk:
+                    start = chunk["contentBlockStart"].get("start", {})
+                    if "toolUse" in start:
+                        _current_tool = {
+                            "id": start["toolUse"].get("toolUseId", ""),
+                            "name": start["toolUse"].get("name", ""),
+                            "input": {},
+                        }
+                        _current_input_json = []
+                elif "contentBlockDelta" in chunk:
+                    delta = chunk["contentBlockDelta"].get("delta", {})
+                    if "toolUse" in delta:
+                        _current_input_json.append(str(delta["toolUse"].get("input", "")))
+                    elif "text" in delta:
+                        _content_text.append(str(delta["text"]))
+                elif "contentBlockStop" in chunk:
+                    if _current_tool is not None:
+                        raw_json = "".join(_current_input_json)
+                        try:
+                            _current_tool["input"] = _json.loads(raw_json) if raw_json else {}
+                        except _json.JSONDecodeError:
+                            _current_tool["input"] = {}
+                        _tool_calls.append(_current_tool)
+                        _current_tool = None
+                        _current_input_json = []
+                elif "messageStop" in chunk:
+                    _stop_reason = chunk["messageStop"].get("stopReason", "end_turn")
+                elif "metadata" in chunk:
+                    u = chunk["metadata"].get("usage", {})
+                    _usage = {
+                        "prompt_tokens": int(u.get("inputTokens", 0)),
+                        "completion_tokens": int(u.get("outputTokens", 0)),
                     }
-                    current_input_json = []
-            elif "contentBlockDelta" in chunk:
-                delta = chunk["contentBlockDelta"].get("delta", {})
-                if "toolUse" in delta:
-                    current_input_json.append(str(delta["toolUse"].get("input", "")))
-                elif "text" in delta:
-                    content_text.append(str(delta["text"]))
-            elif "contentBlockStop" in chunk:
-                if current_tool is not None:
-                    import json
 
-                    raw_json = "".join(current_input_json)
-                    try:
-                        current_tool["input"] = json.loads(raw_json) if raw_json else {}
-                    except json.JSONDecodeError:
-                        current_tool["input"] = {}
-                    tool_calls.append(current_tool)
-                    current_tool = None
-                    current_input_json = []
-            elif "messageStop" in chunk:
-                stop_reason = chunk["messageStop"].get("stopReason", "end_turn")
-            elif "metadata" in chunk:
-                u = chunk["metadata"].get("usage", {})
-                usage = {
-                    "prompt_tokens": int(u.get("inputTokens", 0)),
-                    "completion_tokens": int(u.get("outputTokens", 0)),
-                }
+            return _tool_calls, _content_text, _stop_reason, _usage
+
+        tool_calls, content_text, stop_reason, usage = asyncio.run(_collect())
 
         # Log token usage per call so operator can track spend against budget.
         prompt_t = usage.get("prompt_tokens", 0)
         completion_t = usage.get("completion_tokens", 0)
-        model_id = getattr(self._model, "model_id", "unknown")
+        model_id = self._model.config.get("model_id", "unknown") if hasattr(self._model, "config") else "unknown"
         if "haiku" in model_id:
             cost = (prompt_t * 0.8 + completion_t * 4) / 1_000_000
         else:

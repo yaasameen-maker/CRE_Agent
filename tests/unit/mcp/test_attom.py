@@ -135,14 +135,14 @@ class TestFetchForeclosureRequest:
 
 
 class TestFetchForeclosureErrors:
-    def test_missing_api_key_raises(self) -> None:
+    def test_missing_api_key_returns_empty(self) -> None:
         with patch("src.mcp.attom.bronze_get", return_value=None):
             clean = {k: v for k, v in os.environ.items() if k != "ATTOM_API_KEY"}
             with patch.dict(os.environ, clean, clear=True):
                 from src.mcp.attom import _fetch_foreclosure_filings
 
-                with pytest.raises(ValueError, match="ATTOM_API_KEY"):
-                    _fetch_foreclosure_filings("10001", client=_mock_client({}))
+                result = _fetch_foreclosure_filings("10001", client=_mock_client({}))
+                assert result == {}
 
     def test_http_error_raises(self) -> None:
         with patch("src.mcp.attom.bronze_get", return_value=None):
@@ -212,14 +212,14 @@ class TestFetchDeedCacheMiss:
 
 
 class TestFetchDeedErrors:
-    def test_missing_api_key_raises(self) -> None:
+    def test_missing_api_key_returns_empty(self) -> None:
         with patch("src.mcp.attom.bronze_get", return_value=None):
             clean = {k: v for k, v in os.environ.items() if k != "ATTOM_API_KEY"}
             with patch.dict(os.environ, clean, clear=True):
                 from src.mcp.attom import _fetch_deed_transfers
 
-                with pytest.raises(ValueError, match="ATTOM_API_KEY"):
-                    _fetch_deed_transfers("10001", client=_mock_client({}))
+                result = _fetch_deed_transfers("10001", client=_mock_client({}))
+                assert result == {}
 
     def test_http_error_raises(self) -> None:
         with patch("src.mcp.attom.bronze_get", return_value=None):
